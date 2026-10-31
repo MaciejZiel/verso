@@ -1,0 +1,20 @@
+name: Flatpak
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  flatpak:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-51
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+      - uses: flathub-infra/flatpak-github-actions/flatpak-builder@master
+        with:
+          bundle: verso.flatpak
+          manifest-path: io.github.maciejziel.Verso.yml
+          cache-key: flatpak-builder-${{ github.sha }}
