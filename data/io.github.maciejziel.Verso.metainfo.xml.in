@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.maciejziel.Verso</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Verso</name>
+  <summary>Edit text with live previews</summary>
+  <developer id="io.github.maciejziel">
+    <name translate="no">Maciej Zieliński</name>
+  </developer>
+  <description>
+    <p>Verso is a text editor for GNOME that shows what your files look like while you write them.</p>
+    <p>Features:</p>
+    <ul>
+      <li>Live Markdown preview with tables, task lists and highlighted code</li>
+      <li>JSON as a collapsible, searchable tree</li>
+      <li>Edit, preview or both side by side</li>
+      <li>Syntax highlighting for many languages</li>
+      <li>Tabs, find and replace, spell checking and dark mode</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">io.github.maciejziel.Verso.desktop</launchable>
+  <url type="homepage">https://github.com/MaciejZiel/verso</url>
+  <url type="bugtracker">https://github.com/MaciejZiel/verso/issues</url>
+  <url type="vcs-browser">https://github.com/MaciejZiel/verso</url>
+  <url type="translate">https://github.com/MaciejZiel/verso/tree/main/po</url>
+  <content_rating type="oars-1.1"/>
+  <supports>
+    <control>keyboard</control>
+    <control>pointing</control>
+  </supports>
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+  <branding>
+    <color type="primary" scheme_preference="light">#99c1f1</color>
+    <color type="primary" scheme_preference="dark">#1a5fb4</color>
+  </branding>
+  <provides>
+    <binary>verso</binary>
+  </provides>
+  <releases>
+    <release version="0.9.0" date="2026-10-31">
+      <description>
+        <p>First preview release.</p>
+      </description>
+    </release>
+  </releases>
+</component>

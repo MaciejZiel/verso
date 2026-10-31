@@ -1,9 +1,39 @@
 #!/usr/bin/python3
-# Uruchamia Verso z katalogu repozytorium (bez instalowania pakietu).
+# Development launcher: runs Verso from the source tree without installing it.
+# Compiles translations and the GSettings schema into .dev/ so both work like in an installed build.
+import gettext
+import locale
+import os
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+ROOT = Path(__file__).resolve().parent.parent
+DEV = ROOT / ".dev"
+
+
+def compile_dev_data():
+    schemas = DEV / "schemas"
+    schemas.mkdir(parents=True, exist_ok=True)
+    for schema in (ROOT / "data").glob("*.gschema.xml"):
+        shutil.copy(schema, schemas / schema.name)
+    subprocess.run(["glib-compile-schemas", str(schemas)], check=True)
+    os.environ["GSETTINGS_SCHEMA_DIR"] = str(schemas)
+
+    if shutil.which("msgfmt"):
+        for po in (ROOT / "po").glob("*.po"):
+            target = DEV / "locale" / po.stem / "LC_MESSAGES" / "verso.mo"
+            target.parent.mkdir(parents=True, exist_ok=True)
+            if not target.exists() or target.stat().st_mtime < po.stat().st_mtime:
+                subprocess.run(["msgfmt", "-o", str(target), str(po)], check=True)
+
+
+compile_dev_data()
+sys.path.insert(0, str(ROOT))
+for module in (gettext, locale):
+    module.bindtextdomain("verso", str(DEV / "locale"))
+    module.textdomain("verso")
 
 from verso.app import main  # noqa: E402
 

@@ -1,3 +1,8 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+.dev/
+build/
+_build/
+.flatpak-builder/
+repo/

@@ -1,33 +1,40 @@
 # Verso
 
-Edytor tekstu w stylu Edytora tekstu GNOME (GTK4, libadwaita, GtkSourceView), z podglądem:
+A GNOME text editor with live previews for Markdown, JSON and more (GTK4, libadwaita, GtkSourceView, WebKitGTK).
 
-- **Markdown** w stylu GitHuba: tabele, listy zadań, kolorowanie kodu, spis treści,
-- **JSON** jako drzewo z rozwijaniem i wyszukiwaniem albo jako sformatowany tekst.
+- **Markdown** rendered like on GitHub: tables, task lists, highlighted code, table of contents
+- **JSON** as a collapsible, searchable tree that keeps the key order of the file
+- Edit, Preview, or both Side by Side (Ctrl+E switches)
+- Tabs, find and replace, spell checking, dark mode, session restore
 
-Tryby widoku: Edycja, Obok siebie, Podgląd (Ctrl+E przełącza). Pliki `.md` i `.json` otwierają się w podglądzie.
+See [ROADMAP.md](ROADMAP.md) for what is coming before the Flathub release.
 
-## Wymagania (Ubuntu 26.04)
+## Running from the source tree
 
-```
-sudo apt install gir1.2-webkit-6.0 gir1.2-gtksource-5 gir1.2-spelling-1
-```
-
-Python, GTK4, libadwaita i `python3-markdown` są w systemie.
-
-## Uruchomienie i instalacja
+Ubuntu 26.04 needs:
 
 ```
-./bin/verso plik.md          # z repozytorium
-./install.sh                   # skrót w menu, ikona, domyślny dla .md i .json (bez sudo)
-./install.sh --no-default      # bez zmiany domyślnych programów
-./uninstall.sh                 # usuwa i przywraca Edytor tekstu
+sudo apt install gir1.2-webkit-6.0 gir1.2-gtksource-5 gir1.2-spelling-1 meson gettext
 ```
 
-## Testy
+```
+./bin/verso file.md      # run without installing (compiles schema and translations into .dev/)
+./install.sh             # meson install into ~/.local, default app for .md and .json
+./uninstall.sh
+```
+
+## Tests
 
 ```
-guardrun -- python3 -m pytest tests -q
+python3 -m pytest tests -q                         # unit tests
+meson test -C _build                               # desktop file, metainfo and schema validation
+GSETTINGS_SCHEMA_DIR=.dev/schemas GSETTINGS_BACKEND=memory python3 tests/ui_smoke.py   # drives a real window
 ```
 
-`VERSO_SCREENSHOT=out.png ./bin/verso plik.md` zapisuje zrzut okna i kończy (opcjonalnie `VERSO_MODE=split`, `VERSO_DARK=1`).
+## Translations
+
+Translations live in `po/`. To update the template after changing strings: `meson compile -C _build verso-pot verso-update-po`.
+
+## License
+
+MIT

@@ -6,11 +6,11 @@ Status legend: [ ] todo, [~] in progress, [x] done.
 
 ## M1. Foundation
 
-- [ ] English source strings with gettext; Polish as the reference translation
-- [ ] Meson build: install modules, data, icons, desktop file, metainfo, GSettings schema and translations
-- [ ] GSettings schema: window state, session, all preferences
-- [ ] Session restore: reopen tabs, selected tab and window size after restart
-- [ ] JSON tree keeps the key order from the file (the preview payload uses ordered pairs)
+- [x] English source strings with gettext; Polish as the reference translation
+- [x] Meson build: install modules, data, icons, desktop file, metainfo, GSettings schema and translations
+- [x] GSettings schema: window state, session, all preferences
+- [x] Session restore: reopen tabs, selected tab and window size after restart
+- [x] JSON tree keeps the key order from the file (the preview payload uses ordered pairs)
 - [ ] Preferences dialog skeleton (`Adw.PreferencesDialog`)
 
 ## M2. Editor on par with GNOME Text Editor, then better

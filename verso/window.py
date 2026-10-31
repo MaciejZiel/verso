@@ -5,7 +5,7 @@ from pathlib import Path
 
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 
-from . import render
+from . import render, settings
 from .document import Document
 
 TEXT_FILTER_SUFFIXES = ("*.md", "*.markdown", "*.json", "*.txt", "*.yaml", "*.yml", "*.py", "*.csv", "*.toml", "*.html", "*.css", "*.js")
@@ -13,7 +13,14 @@ TEXT_FILTER_SUFFIXES = ("*.md", "*.markdown", "*.json", "*.txt", "*.yaml", "*.ym
 
 class Window(Adw.ApplicationWindow):
     def __init__(self, app):
-        super().__init__(application=app, default_width=980, default_height=720, title="Verso")
+        prefs = settings.get()
+        super().__init__(
+            application=app,
+            default_width=prefs.get_int("window-width"),
+            default_height=prefs.get_int("window-height"),
+            maximized=prefs.get_boolean("window-maximized"),
+            title="Verso",
+        )
         self.set_icon_name(app.get_application_id())
 
         self.tab_view = Adw.TabView()
@@ -131,8 +138,8 @@ class Window(Adw.ApplicationWindow):
         add("zoom-reset", lambda: self.get_application().change_zoom(0))
         add("next-tab", lambda: self.tab_view.select_next_page() or self._wrap_tabs(True))
         add("prev-tab", lambda: self.tab_view.select_previous_page() or self._wrap_tabs(False))
-        self.spell_action = add("spellcheck", self._on_spellcheck, state=True)
-        self.wrap_action = add("wrap", self._on_wrap, state=True)
+        self.spell_action = add("spellcheck", self._on_spellcheck, state=settings.get().get_boolean("spellcheck"))
+        self.wrap_action = add("wrap", self._on_wrap, state=settings.get().get_boolean("wrap-lines"))
 
     def _wrap_tabs(self, forward):
         n = self.tab_view.get_n_pages()
@@ -141,11 +148,13 @@ class Window(Adw.ApplicationWindow):
 
     def _on_spellcheck(self, action, value):
         action.set_state(value)
+        settings.get().set_boolean("spellcheck", value.get_boolean())
         if self.current:
             self.current.spelling.set_enabled(value.get_boolean())
 
     def _on_wrap(self, action, value):
         action.set_state(value)
+        settings.get().set_boolean("wrap-lines", value.get_boolean())
         mode = Gtk.WrapMode.WORD_CHAR if value.get_boolean() else Gtk.WrapMode.NONE
         for doc in self.documents:
             doc.view.set_wrap_mode(mode)
@@ -281,6 +290,7 @@ class Window(Adw.ApplicationWindow):
         pending = [d for d in self.documents if d.modified]
         if not pending:
             self._closing = True
+            self._save_state()
             for doc in self.documents:
                 doc.shutdown()
             return False
@@ -298,6 +308,18 @@ class Window(Adw.ApplicationWindow):
 
         step(True)
         return True
+
+    def _save_state(self):
+        prefs = settings.get()
+        prefs.set_boolean("window-maximized", self.is_maximized())
+        if not self.is_maximized():
+            width, height = self.get_default_size()
+            prefs.set_int("window-width", width)
+            prefs.set_int("window-height", height)
+        app = self.get_application()
+        others = [w for w in app.get_windows() if w is not self and isinstance(w, Window)] if app else []
+        if app is not None and not others:
+            app.save_session(self)
 
     def _confirm_save(self, doc, callback):
         """Pyta „Zapisać zmiany?”; callback(True) gdy można zamknąć dokument."""

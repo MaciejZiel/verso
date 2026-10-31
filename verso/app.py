@@ -10,9 +10,10 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
+from . import settings  # noqa: E402
 from .window import Window  # noqa: E402
 
-APP_ID = "io.github.maciejziel.Verso"
+APP_ID = settings.APP_ID
 VERSION = "1.0"
 ZOOM_STEPS = (0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0)
 
@@ -58,6 +59,7 @@ class Application(Adw.Application):
     def do_startup(self):
         Adw.Application.do_startup(self)
         Gtk.Window.set_default_icon_name(APP_ID)
+        self.zoom = settings.get().get_double("zoom")
         Gtk.StyleContext.add_provider_for_display(
             Gdk.Display.get_default(),
             self._css,
@@ -77,7 +79,10 @@ class Application(Adw.Application):
             self.set_accels_for_action(action, accels)
 
     def do_activate(self):
+        first_window = self.get_active_window() is None
         window = self.get_active_window() or self._new_window()
+        if first_window:
+            self._restore_session(window)
         if not window.documents:
             window.new_document()
         window.present()
@@ -89,6 +94,31 @@ class Application(Adw.Application):
             window.open_file(file)
         window.present()
         self._maybe_screenshot(window)
+
+    def _restore_session(self, window):
+        prefs = settings.get()
+        if not prefs.get_boolean("restore-session"):
+            return
+        uris = prefs.get_strv("session-uris")
+        files = [Gio.File.new_for_uri(uri) for uri in uris]
+        files = [f for f in files if f.query_exists(None)]
+        for file in files:
+            window.open_file(file)
+        if files:
+            index = min(max(prefs.get_int("session-selected"), 0), window.tab_view.get_n_pages() - 1)
+            window.tab_view.set_selected_page(window.tab_view.get_nth_page(index))
+
+    def save_session(self, window):
+        """Called by the last window that closes: remembers its documents for the next start."""
+        uris, selected = [], 0
+        for doc in window.documents:
+            if doc.file is not None:
+                if doc is window.current:
+                    selected = len(uris)
+                uris.append(doc.file.get_uri())
+        prefs = settings.get()
+        prefs.set_strv("session-uris", uris)
+        prefs.set_int("session-selected", selected)
 
     def _quit(self):
         # Przez close(), żeby każde okno zapytało o niezapisane zmiany (sam quit() to pomija).
@@ -128,6 +158,7 @@ class Application(Adw.Application):
             index = min(range(len(ZOOM_STEPS)), key=lambda i: abs(ZOOM_STEPS[i] - self.zoom))
             index = max(0, min(len(ZOOM_STEPS) - 1, index + direction))
             self.zoom = ZOOM_STEPS[index]
+        settings.get().set_double("zoom", self.zoom)
         self._apply_css()
         for window in self.get_windows():
             if isinstance(window, Window):

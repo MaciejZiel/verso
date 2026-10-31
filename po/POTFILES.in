@@ -1,0 +1,7 @@
+data/io.github.maciejziel.Verso.desktop.in
+data/io.github.maciejziel.Verso.metainfo.xml.in
+data/io.github.maciejziel.Verso.gschema.xml
+verso/app.py
+verso/document.py
+verso/render.py
+verso/window.py

@@ -1,0 +1,434 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the verso package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: verso\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-10-31 22:09+0100\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: data/io.github.maciejziel.Verso.desktop.in:3
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:6
+msgid "Verso"
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.desktop.in:4
+msgid "Text Editor"
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.desktop.in:5
+msgid "Edit and preview Markdown, JSON and other text files"
+msgstr ""
+
+#. Translators: search terms for finding this application; keep the semicolons.
+#: data/io.github.maciejziel.Verso.desktop.in:7
+msgid "text;editor;markdown;json;preview;csv;yaml;notes;"
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.desktop.in:18 verso/app.py:185
+#: verso/window.py:87
+msgid "New Window"
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:7
+msgid "Edit text with live previews"
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:12
+msgid ""
+"Verso is a text editor for GNOME that shows what your files look like while "
+"you write them."
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:13
+msgid "Features:"
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:15
+msgid "Live Markdown preview with tables, task lists and highlighted code"
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:16
+msgid "JSON as a collapsible, searchable tree"
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:17
+msgid "Edit, preview or both side by side"
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:18
+msgid "Syntax highlighting for many languages"
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:19
+msgid "Tabs, find and replace, spell checking and dark mode"
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:45
+msgid "First preview release."
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.gschema.xml:7
+msgid "Window width"
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.gschema.xml:11
+msgid "Window height"
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.gschema.xml:15
+msgid "Window maximized"
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.gschema.xml:19
+msgid "Restore session"
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.gschema.xml:20
+msgid ""
+"Reopen the documents from the last session when Verso starts without files."
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.gschema.xml:24
+msgid "Documents of the last session"
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.gschema.xml:28
+msgid "Selected tab of the last session"
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.gschema.xml:33
+msgid "Zoom level"
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.gschema.xml:37
+msgid "Wrap lines"
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.gschema.xml:41
+msgid "Check spelling"
+msgstr ""
+
+#: verso/app.py:47
+msgid "Open a new window"
+msgstr ""
+
+#: verso/app.py:167
+#, python-brace-format
+msgid "Zoom: {percent}%"
+msgstr ""
+
+#: verso/app.py:177
+msgid "Text editor with live previews for Markdown, JSON and more"
+msgstr ""
+
+#: verso/app.py:185
+msgid "Files"
+msgstr ""
+
+#: verso/app.py:185 verso/window.py:79
+msgid "Open"
+msgstr ""
+
+#: verso/app.py:185
+msgid "New Tab"
+msgstr ""
+
+#: verso/app.py:186 verso/window.py:88
+msgid "Save"
+msgstr ""
+
+#: verso/app.py:186 verso/window.py:246
+msgid "Save As"
+msgstr ""
+
+#: verso/app.py:186
+msgid "Close Tab"
+msgstr ""
+
+#: verso/app.py:187
+msgid "View"
+msgstr ""
+
+#: verso/app.py:187
+msgid "Switch Between Edit and Preview"
+msgstr ""
+
+#: verso/app.py:187
+msgid "Zoom In"
+msgstr ""
+
+#: verso/app.py:188
+msgid "Zoom Out"
+msgstr ""
+
+#: verso/app.py:188
+msgid "Reset Zoom"
+msgstr ""
+
+#: verso/app.py:189
+msgid "Next Tab"
+msgstr ""
+
+#: verso/app.py:189
+msgid "Previous Tab"
+msgstr ""
+
+#: verso/app.py:190
+msgid "Editing"
+msgstr ""
+
+#: verso/app.py:190 verso/document.py:121
+msgid "Find"
+msgstr ""
+
+#: verso/app.py:190
+msgid "Find and Replace"
+msgstr ""
+
+#: verso/app.py:191 verso/window.py:94
+msgid "Format JSON"
+msgstr ""
+
+#: verso/app.py:191
+msgid "Undo"
+msgstr ""
+
+#: verso/app.py:191
+msgid "Redo"
+msgstr ""
+
+#: verso/document.py:74
+msgid "The file has changed on disk."
+msgstr ""
+
+#: verso/document.py:74
+msgid "_Reload"
+msgstr ""
+
+#: verso/document.py:130
+msgid "Previous Match (Shift+Enter)"
+msgstr ""
+
+#: verso/document.py:132
+msgid "Next Match (Enter)"
+msgstr ""
+
+#: verso/document.py:138
+msgid "Replace (Ctrl+H)"
+msgstr ""
+
+#: verso/document.py:139
+msgid "Match Case"
+msgstr ""
+
+#: verso/document.py:148
+msgid "Replace with"
+msgstr ""
+
+#: verso/document.py:150
+msgid "Replace"
+msgstr ""
+
+#: verso/document.py:152
+msgid "Replace All"
+msgstr ""
+
+#: verso/document.py:171
+#, python-brace-format
+msgid "New Document {number}"
+msgstr ""
+
+#: verso/document.py:171 verso/window.py:247
+msgid "New Document"
+msgstr ""
+
+#: verso/document.py:177
+msgid "Draft"
+msgstr ""
+
+#: verso/document.py:208
+#, python-brace-format
+msgid "Could not open the file: {error}"
+msgstr ""
+
+#: verso/document.py:212
+#, python-brace-format
+msgid "The file uses the {encoding} encoding; saving converts it to UTF-8."
+msgstr ""
+
+#: verso/document.py:269
+#, python-brace-format
+msgid "Could not save the file: {error}"
+msgstr ""
+
+#: verso/document.py:365
+msgid "Formatting is available only for JSON files."
+msgstr ""
+
+#: verso/document.py:371
+#, python-brace-format
+msgid "Invalid JSON. {error}"
+msgstr ""
+
+#: verso/document.py:535
+#, python-brace-format
+msgid "{position} of {total}"
+msgstr ""
+
+#: verso/document.py:535
+msgid "No matches"
+msgstr ""
+
+#: verso/document.py:548
+#, python-brace-format
+msgid "Replaced {count} match"
+msgid_plural "Replaced {count} matches"
+msgstr[0] ""
+msgstr[1] ""
+
+#: verso/render.py:106
+#, python-brace-format
+msgid "Line {line}, column {column}: {message}"
+msgstr ""
+
+#: verso/render.py:129
+msgid "Contents"
+msgstr ""
+
+#: verso/render.py:130
+msgid "Search keys and values…"
+msgstr ""
+
+#: verso/render.py:131
+msgid "Expand All"
+msgstr ""
+
+#: verso/render.py:132
+msgid "Collapse All"
+msgstr ""
+
+#: verso/render.py:133
+msgid "Raw"
+msgstr ""
+
+#: verso/render.py:134
+msgid "Invalid JSON."
+msgstr ""
+
+#: verso/render.py:135
+msgid "No preview for this file type."
+msgstr ""
+
+#: verso/window.py:35
+msgid "New Tab (Ctrl+T)"
+msgstr ""
+
+#: verso/window.py:56
+msgid "Search Recent Documents"
+msgstr ""
+
+#: verso/window.py:60
+msgid "No Recent Documents"
+msgstr ""
+
+#: verso/window.py:66
+msgid "Browse Files…"
+msgstr ""
+
+#: verso/window.py:76
+msgid "Open a File (Ctrl+O)"
+msgstr ""
+
+#: verso/window.py:89
+msgid "Save As…"
+msgstr ""
+
+#: verso/window.py:92
+msgid "Find…"
+msgstr ""
+
+#: verso/window.py:93
+msgid "Find and Replace…"
+msgstr ""
+
+#: verso/window.py:97
+msgid "Check Spelling"
+msgstr ""
+
+#: verso/window.py:98
+msgid "Wrap Lines"
+msgstr ""
+
+#: verso/window.py:101
+msgid "Keyboard Shortcuts"
+msgstr ""
+
+#: verso/window.py:102
+msgid "About Verso"
+msgstr ""
+
+#: verso/window.py:104
+msgid "Main Menu"
+msgstr ""
+
+#: verso/window.py:109
+msgid "Edit"
+msgstr ""
+
+#: verso/window.py:109
+msgid "Edit and Preview Side by Side"
+msgstr ""
+
+#: verso/window.py:109
+msgid "Preview"
+msgstr ""
+
+#: verso/window.py:110
+#, python-brace-format
+msgid "{mode} (Ctrl+E to switch)"
+msgstr ""
+
+#: verso/window.py:210
+msgid "Open File"
+msgstr ""
+
+#: verso/window.py:212
+msgid "Text Files"
+msgstr ""
+
+#: verso/window.py:217
+msgid "All Files"
+msgstr ""
+
+#: verso/window.py:327
+msgid "Save Changes?"
+msgstr ""
+
+#: verso/window.py:328
+#, python-brace-format
+msgid "Unsaved changes to “{title}” will be lost if you don’t save them."
+msgstr ""
+
+#: verso/window.py:330
+msgid "_Cancel"
+msgstr ""
+
+#: verso/window.py:331
+msgid "_Discard"
+msgstr ""
+
+#: verso/window.py:332
+msgid "_Save"
+msgstr ""
