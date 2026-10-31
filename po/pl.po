@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: verso\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-31 22:44+0100\n"
+"POT-Creation-Date: 2026-10-31 22:50+0100\n"
 "PO-Revision-Date: 2026-10-31 22:09+0100\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -169,11 +169,19 @@ msgstr "Automatyczne wcięcia"
 msgid "Close brackets and quotes automatically"
 msgstr "Automatyczne zamykanie nawiasów i cudzysłowów"
 
+#: data/io.github.maciejziel.Verso.gschema.xml:97
+msgid "Synchronized scrolling"
+msgstr "Synchroniczne przewijanie"
+
 #: data/io.github.maciejziel.Verso.gschema.xml:98
+msgid "Scroll the editor and the preview together in the side by side view."
+msgstr "Przewijanie edytora i podglądu razem w widoku obok siebie."
+
+#: data/io.github.maciejziel.Verso.gschema.xml:103
 msgid "Default view for Markdown files"
 msgstr "Domyślny widok plików Markdown"
 
-#: data/io.github.maciejziel.Verso.gschema.xml:103
+#: data/io.github.maciejziel.Verso.gschema.xml:108
 msgid "Default view for JSON and other data files"
 msgstr "Domyślny widok plików JSON i innych plików danych"
 
@@ -246,7 +254,7 @@ msgstr "Poprzednia karta"
 msgid "Editing"
 msgstr "Edycja"
 
-#: verso/app.py:237 verso/document.py:155
+#: verso/app.py:237 verso/document.py:160
 msgid "Find"
 msgstr "Znajdź"
 
@@ -278,98 +286,98 @@ msgstr "Plik zmienił się na dysku."
 msgid "_Reload"
 msgstr "_Wczytaj ponownie"
 
-#: verso/document.py:164
+#: verso/document.py:169
 msgid "Previous Match (Shift+Enter)"
 msgstr "Poprzednie wystąpienie (Shift+Enter)"
 
-#: verso/document.py:166
+#: verso/document.py:171
 msgid "Next Match (Enter)"
 msgstr "Następne wystąpienie (Enter)"
 
-#: verso/document.py:172
+#: verso/document.py:177
 msgid "Replace (Ctrl+H)"
 msgstr "Zamień (Ctrl+H)"
 
-#: verso/document.py:173
+#: verso/document.py:178
 msgid "Match Case"
 msgstr "Uwzględniaj wielkość liter"
 
-#: verso/document.py:182
+#: verso/document.py:187
 msgid "Replace with"
 msgstr "Zamień na"
 
-#: verso/document.py:184
+#: verso/document.py:189
 msgid "Replace"
 msgstr "Zamień"
 
-#: verso/document.py:186
+#: verso/document.py:191
 msgid "Replace All"
 msgstr "Zamień wszystkie"
 
-#: verso/document.py:205
+#: verso/document.py:210
 #, python-brace-format
 msgid "New Document {number}"
 msgstr "Nowy dokument {number}"
 
-#: verso/document.py:205 verso/window.py:257
+#: verso/document.py:210 verso/window.py:257
 msgid "New Document"
 msgstr "Nowy dokument"
 
-#: verso/document.py:211
+#: verso/document.py:216
 msgid "Draft"
 msgstr "Szkic"
 
 #. Loaded, but some bytes did not fit the encoding and were replaced.
-#: verso/document.py:246
+#: verso/document.py:251
 msgid "Some characters could not be read correctly. Try reopening the file with another encoding."
 msgstr "Części znaków nie udało się poprawnie odczytać. Spróbuj otworzyć plik ponownie z innym kodowaniem."
 
-#: verso/document.py:254
+#: verso/document.py:259
 #, python-brace-format
 msgid "Could not open the file: {error}"
 msgstr "Nie udało się otworzyć pliku: {error}"
 
-#: verso/document.py:311
+#: verso/document.py:316
 msgid "Discard Changes and Reopen?"
 msgstr "Odrzucić zmiany i otworzyć ponownie?"
 
-#: verso/document.py:312
+#: verso/document.py:317
 #, python-brace-format
 msgid "Reopening “{title}” with another encoding replaces your unsaved changes with the file on disk."
 msgstr "Ponowne otwarcie „{title}” z innym kodowaniem zastąpi niezapisane zmiany zawartością pliku z dysku."
 
-#: verso/document.py:314 verso/window.py:362
+#: verso/document.py:319 verso/window.py:362
 msgid "_Cancel"
 msgstr "_Anuluj"
 
-#: verso/document.py:315
+#: verso/document.py:320
 msgid "_Discard and Reopen"
 msgstr "_Odrzuć i otwórz ponownie"
 
-#: verso/document.py:358
+#: verso/document.py:363
 #, python-brace-format
 msgid "Could not save the file: {error}"
 msgstr "Nie udało się zapisać pliku: {error}"
 
-#: verso/document.py:580
+#: verso/document.py:585
 msgid "Formatting is available only for JSON files."
 msgstr "Formatowanie działa tylko dla plików JSON."
 
-#: verso/document.py:586
+#: verso/document.py:591
 #, python-brace-format
 msgid "Invalid JSON. {error}"
 msgstr "Niepoprawny JSON. {error}"
 
-#: verso/document.py:751
+#: verso/document.py:797
 #, python-brace-format
 msgid "{position} of {total}"
 msgstr "{position} z {total}"
 
-#: verso/document.py:751
+#: verso/document.py:797
 msgid "No matches"
 msgstr "Brak wyników"
 
-#: verso/document.py:764
+#: verso/document.py:810
 #, python-brace-format
 msgid "Replaced {count} match"
 msgid_plural "Replaced {count} matches"
@@ -377,7 +385,7 @@ msgstr[0] "Zamieniono {count} wystąpienie"
 msgstr[1] "Zamieniono {count} wystąpienia"
 msgstr[2] "Zamieniono {count} wystąpień"
 
-#: verso/document.py:800
+#: verso/document.py:846
 #, python-brace-format
 msgid "Could not keep a backup of unsaved changes: {error}"
 msgstr "Nie udało się zachować kopii niezapisanych zmian: {error}"
@@ -527,7 +535,7 @@ msgstr "_Odrzuć"
 msgid "_Save"
 msgstr "_Zapisz"
 
-#: verso/preferences.py:48
+#: verso/preferences.py:48 verso/preferences.py:134
 msgid "Side by Side"
 msgstr "Obok siebie"
 
@@ -646,6 +654,14 @@ msgstr "Markdown"
 #: verso/preferences.py:132
 msgid "JSON and Data Files"
 msgstr "JSON i pliki danych"
+
+#: verso/preferences.py:135
+msgid "Synchronized Scrolling"
+msgstr "Synchroniczne przewijanie"
+
+#: verso/preferences.py:135
+msgid "The preview follows the editor and the other way round"
+msgstr "Podgląd podąża za edytorem i odwrotnie"
 
 #: verso/statusbar.py:20
 msgid "Unix and macOS (LF)"

@@ -119,6 +119,8 @@ class Document(Gtk.Box):
 
         self.source_scroller = Gtk.ScrolledWindow(hexpand=True, vexpand=True)
         self.source_scroller.set_child(self.view)
+        self.source_scroller.get_vadjustment().connect("value-changed", self._on_editor_scroll)
+        self._scroll_lock_until = 0  # monotonic µs; ignore scroll echoes from the other side until then
         # The overview map is created only when enabled: an existing but hidden GtkSource.Map
         # clears the editor's selection shortly after it is made (breaks find next/previous).
         self.map = None
@@ -142,7 +144,10 @@ class Document(Gtk.Box):
         self.search_context.connect("notify::occurrences-count", lambda *_: self._update_search_label())
 
     def _build_preview(self):
-        self.webview = WebKit.WebView(hexpand=True, vexpand=True)
+        content = WebKit.UserContentManager()
+        content.register_script_message_handler("verso", None)
+        content.connect("script-message-received::verso", self._on_preview_message)
+        self.webview = WebKit.WebView(hexpand=True, vexpand=True, user_content_manager=content)
         settings = self.webview.get_settings()
         settings.set_enable_developer_extras(False)
         settings.set_allow_file_access_from_file_urls(True)
@@ -636,6 +641,47 @@ class Document(Gtk.Box):
         payload = render.preview_payload(self.kind, text)
         self._run_js(f"window.verso.update({json.dumps(payload, ensure_ascii=False)})")
         return GLib.SOURCE_REMOVE
+
+    # ---------- synchronized scrolling (split view, Markdown) ----------
+
+    def _sync_active(self):
+        return self.mode == "split" and self.kind == "markdown" and settings.get().get_boolean("sync-scroll") and self._preview_ready
+
+    def _lock_scroll(self):
+        self._scroll_lock_until = GLib.get_monotonic_time() + 150_000
+
+    def _on_editor_scroll(self, adjustment):
+        if not self._sync_active() or GLib.get_monotonic_time() < self._scroll_lock_until:
+            return
+        y = adjustment.get_value()
+        it, _top = self.view.get_line_at_y(int(y))
+        line_y, height = self.view.get_line_yrange(it)
+        line = it.get_line() + (min(max((y - line_y) / height, 0.0), 1.0) if height else 0.0)
+        if adjustment.get_value() + adjustment.get_page_size() >= adjustment.get_upper() - 1:
+            line = -1  # at the very bottom: show the end of the preview too
+        self._lock_scroll()
+        self._run_js(f"window.verso.scrollToLine({line:.3f})")
+
+    def _on_preview_message(self, _manager, value):
+        try:
+            message = json.loads(value.to_string())  # the page posts a JSON string
+        except (TypeError, ValueError):
+            return
+        if not isinstance(message, dict) or message.get("type") != "scroll" or not self._sync_active():
+            return
+        if GLib.get_monotonic_time() < self._scroll_lock_until:
+            return
+        adjustment = self.source_scroller.get_vadjustment()
+        line = message.get("line", 0)
+        if line < 0:
+            target = adjustment.get_upper() - adjustment.get_page_size()
+        else:
+            whole = int(line)
+            _found, it = self.buffer.get_iter_at_line(min(whole, self.buffer.get_line_count() - 1))
+            line_y, height = self.view.get_line_yrange(it)
+            target = line_y + (line - whole) * height
+        self._lock_scroll()
+        adjustment.set_value(max(0, target))
 
     def _run_js(self, script):
         self.webview.evaluate_javascript(script, -1, None, None, None, None, None)

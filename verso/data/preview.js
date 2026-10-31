@@ -368,7 +368,76 @@
     draw();
   }
 
+  // ---------- synchronized scrolling ----------
+  // Blocks carry data-line (first source line). Positions between blocks are interpolated.
+  let scrollLockUntil = 0;
+  function lineBlocks() {
+    const blocks = [];
+    let last = -1;
+    for (const node of document.querySelectorAll("#content [data-line]")) {
+      const line = Number(node.dataset.line);
+      if (line > last) {
+        blocks.push({ line, top: node.getBoundingClientRect().top + window.scrollY });
+        last = line;
+      }
+    }
+    return blocks;
+  }
+
+  function scrollToLine(line) {
+    if (current !== "markdown") return;
+    scrollLockUntil = performance.now() + 150;
+    const maxY = document.documentElement.scrollHeight - window.innerHeight;
+    if (line < 0) {
+      window.scrollTo(0, maxY);
+      return;
+    }
+    const blocks = lineBlocks();
+    if (!blocks.length) return;
+    let prev = { line: 0, top: 0 };
+    let next = null;
+    for (const block of blocks) {
+      if (block.line <= line) prev = block;
+      else {
+        next = block;
+        break;
+      }
+    }
+    const endTop = document.documentElement.scrollHeight;
+    const nextLine = next ? next.line : prev.line + 1;
+    const nextTop = next ? next.top : endTop;
+    const ratio = nextLine > prev.line ? (line - prev.line) / (nextLine - prev.line) : 0;
+    window.scrollTo(0, Math.min(maxY, prev.top + ratio * (nextTop - prev.top) - 16));
+  }
+
+  function reportScroll() {
+    if (current !== "markdown" || performance.now() < scrollLockUntil) return;
+    const handler = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.verso;
+    if (!handler) return;
+    const maxY = document.documentElement.scrollHeight - window.innerHeight;
+    if (window.scrollY >= maxY - 1 && maxY > 0) {
+      handler.postMessage(JSON.stringify({ type: "scroll", line: -1 }));
+      return;
+    }
+    const y = window.scrollY + 16;
+    const blocks = lineBlocks();
+    let prev = { line: 0, top: 0 };
+    let next = null;
+    for (const block of blocks) {
+      if (block.top <= y) prev = block;
+      else {
+        next = block;
+        break;
+      }
+    }
+    let line = prev.line;
+    if (next && next.top > prev.top) line += ((y - prev.top) / (next.top - prev.top)) * (next.line - prev.line);
+    handler.postMessage(JSON.stringify({ type: "scroll", line }));
+  }
+  window.addEventListener("scroll", () => requestAnimationFrame(reportScroll), { passive: true });
+
   window.verso = {
+    scrollToLine,
     update(payload) {
       const y = window.scrollY;
       if (payload.kind === "markdown") renderMarkdown(payload);

@@ -92,6 +92,11 @@
       <summary>Close brackets and quotes automatically</summary>
     </key>
     <!-- Preview -->
+    <key name="sync-scroll" type="b">
+      <default>true</default>
+      <summary>Synchronized scrolling</summary>
+      <description>Scroll the editor and the preview together in the side by side view.</description>
+    </key>
     <key name="default-mode-markdown" type="s">
       <choices><choice value="edit"/><choice value="split"/><choice value="preview"/></choices>
       <default>'preview'</default>

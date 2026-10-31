@@ -25,9 +25,9 @@ Status legend: [ ] todo, [~] in progress, [x] done.
 
 ## M3. Previews
 
-- [ ] Move Markdown rendering to markdown-it-py so every block carries its source line
-- [ ] Synchronized scrolling between editor and preview in split mode
-- [ ] Markdown extras: footnotes, front matter, definition lists, KaTeX math, Mermaid diagrams (vendored, offline, sandboxed by CSP)
+- [x] Move Markdown rendering to markdown-it-py so every block carries its source line
+- [x] Synchronized scrolling between editor and preview in split mode
+- [~] Markdown extras: front matter, KaTeX math, Mermaid diagrams done; footnotes and definition lists need mdit-py-plugins (vendored, offline, sandboxed by CSP)
 - [ ] Preview themes: GitHub, Document (serif, print-like), Reader (large, centered); content width and preview font
 - [ ] CSV / TSV: table with sticky header, column sorting, search, delimiter detection
 - [ ] YAML / TOML / XML: the same tree view as JSON

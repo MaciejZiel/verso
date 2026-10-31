@@ -82,6 +82,28 @@ def steps(win):
     yield 300
     check("search works after reopen", md.buffer.get_has_selection())
     md.hide_search()
+    # synchroniczne przewijanie w trybie obok siebie
+    long_md = "".join(f"## Sekcja {i}\n\nAkapit numer {i} z odrobiną tekstu.\n\n" for i in range(120))
+    md.buffer.set_text(long_md)
+    md.set_mode("split")
+    yield 1200
+    _found, it = md.buffer.get_iter_at_line(200)  # around "Sekcja 50"
+    y, _h = md.view.get_line_yrange(it)
+    md.source_scroller.get_vadjustment().set_value(y)
+    yield 600
+    top = {}
+    md.webview.evaluate_javascript(
+        "(() => { const b = [...document.querySelectorAll('#content h2')].find(e => e.getBoundingClientRect().bottom > 0); return b ? b.textContent : ''; })()",
+        -1, None, None, None, lambda w, r, _u: top.setdefault("h", w.evaluate_javascript_finish(r).to_string()), None)
+    yield 300
+    check("editor scroll moves preview", top.get("h") in ("Sekcja 49", "Sekcja 50", "Sekcja 51"))
+    yield 300
+    md.webview.evaluate_javascript("document.querySelectorAll('#content h2')[90].scrollIntoView()", -1, None, None, None, None, None)
+    yield 700
+    adj = md.source_scroller.get_vadjustment()
+    it, _t = md.view.get_line_at_y(int(adj.get_value()))
+    check("preview scroll moves editor", 355 <= it.get_line() <= 365)
+    md.buffer.set_modified(False)
     # pasek stanu: liczba słów, pozycja, przejdź do linii, język, wcięcia
     md.set_mode("edit")
     sb = md.statusbar

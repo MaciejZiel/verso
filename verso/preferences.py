@@ -131,6 +131,9 @@ class PreferencesDialog(Adw.PreferencesDialog):
         modes.add(self._mode_row("default-mode-markdown", _("Markdown")))
         modes.add(self._mode_row("default-mode-data", _("JSON and Data Files")))
         page.add(modes)
+        split = Adw.PreferencesGroup(title=_("Side by Side"))
+        split.add(self._switch("sync-scroll", _("Synchronized Scrolling"), _("The preview follows the editor and the other way round")))
+        page.add(split)
         return page
 
     # ---------- style schemes ----------
