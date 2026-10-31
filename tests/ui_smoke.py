@@ -80,6 +80,25 @@ def steps(win):
     yield 300
     check("search works after reopen", md.buffer.get_has_selection())
     md.hide_search()
+    # pliki z Windows: cp1250 + CRLF wczytane poprawnie i zapisane bez zmiany kodowania i końców linii
+    cp = f"{S}/e2e/windows.txt"
+    Path(cp).write_bytes("Zażółć gęślą jaźń\r\ndruga linia\r\n".encode("cp1250"))
+    win_doc = win.open_file(Gio.File.new_for_path(cp))
+    yield 800
+    check("cp1250 decoded", win_doc.buffer.get_property("text").startswith("Zażółć gęślą jaźń") and win_doc.encoding.get_charset() == "WINDOWS-1250")
+    win_doc.buffer.insert(win_doc.buffer.get_end_iter(), "\ntrzecia")
+    win.lookup_action("save").activate(None)
+    yield 600
+    check("save keeps cp1250 and CRLF", Path(cp).read_bytes() == "Zażółć gęślą jaźń\r\ndruga linia\r\ntrzecia\r\n".encode("cp1250"))
+    from gi.repository import GtkSource
+    win_doc.set_newline_type(GtkSource.NewlineType.LF)
+    win_doc.set_save_encoding(GtkSource.Encoding.get_utf8())
+    check("changing line endings marks modified", win_doc.modified)
+    win.lookup_action("save").activate(None)
+    yield 600
+    check("save as UTF-8 + LF", Path(cp).read_bytes() == "Zażółć gęślą jaźń\ndruga linia\ntrzecia\n".encode("utf-8"))
+    win.tab_view.close_page(win.tab_view.get_page(win_doc))
+    yield 300
     js = win.open_file(Gio.File.new_for_path(f"{S}/e2e/data.json"))
     yield 1200
     check("json in second tab", win.tab_view.get_n_pages() == 2 and js.kind == "json")

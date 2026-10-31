@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: verso\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-31 22:24+0100\n"
+"POT-Creation-Date: 2026-10-31 22:30+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -255,7 +255,7 @@ msgstr ""
 msgid "Editing"
 msgstr ""
 
-#: verso/app.py:206 verso/document.py:126
+#: verso/app.py:206 verso/document.py:147
 msgid "Find"
 msgstr ""
 
@@ -275,89 +275,91 @@ msgstr ""
 msgid "Redo"
 msgstr ""
 
-#: verso/document.py:76
+#: verso/document.py:97
 msgid "The file has changed on disk."
 msgstr ""
 
-#: verso/document.py:76
+#: verso/document.py:97
 msgid "_Reload"
 msgstr ""
 
-#: verso/document.py:135
+#: verso/document.py:156
 msgid "Previous Match (Shift+Enter)"
 msgstr ""
 
-#: verso/document.py:137
+#: verso/document.py:158
 msgid "Next Match (Enter)"
 msgstr ""
 
-#: verso/document.py:143
+#: verso/document.py:164
 msgid "Replace (Ctrl+H)"
 msgstr ""
 
-#: verso/document.py:144
+#: verso/document.py:165
 msgid "Match Case"
 msgstr ""
 
-#: verso/document.py:153
+#: verso/document.py:174
 msgid "Replace with"
 msgstr ""
 
-#: verso/document.py:155
+#: verso/document.py:176
 msgid "Replace"
 msgstr ""
 
-#: verso/document.py:157
+#: verso/document.py:178
 msgid "Replace All"
 msgstr ""
 
-#: verso/document.py:176
+#: verso/document.py:197
 #, python-brace-format
 msgid "New Document {number}"
 msgstr ""
 
-#: verso/document.py:176 verso/window.py:248
+#: verso/document.py:197 verso/window.py:248
 msgid "New Document"
 msgstr ""
 
-#: verso/document.py:182
+#: verso/document.py:203
 msgid "Draft"
 msgstr ""
 
-#: verso/document.py:213
+#. Loaded, but some bytes did not fit the encoding and were replaced.
+#: verso/document.py:238
+msgid ""
+"Some characters could not be read correctly. Try reopening the file with "
+"another encoding."
+msgstr ""
+
+#: verso/document.py:246
 #, python-brace-format
 msgid "Could not open the file: {error}"
 msgstr ""
 
-#: verso/document.py:217
-#, python-brace-format
-msgid "The file uses the {encoding} encoding; saving converts it to UTF-8."
-msgstr ""
-
-#: verso/document.py:274
+#: verso/document.py:331
 #, python-brace-format
 msgid "Could not save the file: {error}"
 msgstr ""
 
-#: verso/document.py:473
+#: verso/document.py:531
 msgid "Formatting is available only for JSON files."
 msgstr ""
 
-#: verso/document.py:479
+#: verso/document.py:537
 #, python-brace-format
 msgid "Invalid JSON. {error}"
 msgstr ""
 
-#: verso/document.py:643
+#: verso/document.py:701
 #, python-brace-format
 msgid "{position} of {total}"
 msgstr ""
 
-#: verso/document.py:643
+#: verso/document.py:701
 msgid "No matches"
 msgstr ""
 
-#: verso/document.py:656
+#: verso/document.py:714
 #, python-brace-format
 msgid "Replaced {count} match"
 msgid_plural "Replaced {count} matches"

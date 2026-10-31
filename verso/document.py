@@ -18,6 +18,24 @@ from .preferences import resolve_scheme  # noqa: E402
 
 PREVIEW_DELAY_MS = 250
 
+# Windows code pages first: they are supersets of the ISO ones for printable text, and files from
+# Windows are far more common. GtkSourceView's own order makes cp1250 Polish text look broken.
+_WINDOWS_FIRST = {"ISO-8859-1": "WINDOWS-1252", "ISO-8859-15": "WINDOWS-1252", "ISO-8859-2": "WINDOWS-1250",
+                  "ISO-8859-5": "WINDOWS-1251", "ISO-8859-7": "WINDOWS-1253", "ISO-8859-9": "WINDOWS-1254"}
+
+
+def candidate_encodings():
+    result, seen = [GtkSource.Encoding.get_utf8()], {"UTF-8"}
+    for encoding in GtkSource.Encoding.get_default_candidates():
+        charsets = [_WINDOWS_FIRST.get(encoding.get_charset()), encoding.get_charset()]
+        for charset in charsets:
+            if charset and charset not in seen:
+                candidate = GtkSource.Encoding.get_from_charset(charset)
+                if candidate is not None:
+                    result.append(candidate)
+                    seen.add(charset)
+    return result
+
 
 def _rgba(spec):
     color = Gdk.RGBA()
@@ -47,7 +65,10 @@ class Document(Gtk.Box):
         self._preview_ready = False
         self._preview_timer = 0
         self._loading = False
-        self._change_serial = 0  # rośnie przy każdej zmianie bufora; chroni przed „zapisane” po edycji w trakcie zapisu
+        self._change_serial = 0
+        self.source_file = GtkSource.File()
+        self._save_encoding = None  # set when the user picks another encoding for saving
+        self._save_newline = None  # rośnie przy każdej zmianie bufora; chroni przed „zapisane” po edycji w trakcie zapisu
 
         self._build_banner()
         self._build_search()
@@ -194,33 +215,37 @@ class Document(Gtk.Box):
     def is_blank(self):
         return self.file is None and not self.modified and self.buffer.get_char_count() == 0
 
-    def load(self, file):
+    def load(self, file, encoding=None):
+        """Reads the file through GtkSource.FileLoader: detects encoding, line endings and compression."""
         previous = self.file
         self.file = file
         self._loading = True
         self.emit("state-changed")
-        file.load_contents_async(None, self._on_loaded, previous)
-
-    def _on_loaded(self, file, result, previous):
-        try:
-            _ok, contents, etag = file.load_contents_finish(result)
-        except GLib.Error as error:
-            self._loading = False
-            if previous is None or not previous.equal(file):
-                # Pusty bufor nie może zostać podpięty pod prawdziwy plik: zapis by go wyczyścił.
-                self.file = previous
-                self.emit("state-changed")
-            self._toast(_("Could not open the file: {error}").format(error=error.message))
-            return
-        text, encoding = self._decode(bytes(contents))
-        if encoding != "utf-8":
-            self._toast(_("The file uses the {encoding} encoding; saving converts it to UTF-8.").format(encoding=encoding))
-        self._etag = etag
+        self.source_file.set_location(file)
+        loader = GtkSource.FileLoader.new(self.buffer, self.source_file)
+        loader.set_candidate_encodings([encoding] if encoding else candidate_encodings())
         offset = self.buffer.get_property("cursor-position")
-        self.buffer.begin_irreversible_action()
-        self.buffer.set_text(text)
-        self.buffer.end_irreversible_action()
-        self.buffer.set_modified(False)
+        loader.load_async(GLib.PRIORITY_DEFAULT, None, None, None, self._on_loaded, (previous, offset))
+
+    def _on_loaded(self, loader, result, data):
+        previous, offset = data
+        file = loader.get_location()
+        try:
+            loader.load_finish(result)
+        except GLib.Error as error:
+            if error.matches(GtkSource.FileLoaderError.quark(), GtkSource.FileLoaderError.CONVERSION_FALLBACK):
+                # Loaded, but some bytes did not fit the encoding and were replaced.
+                self._toast(_("Some characters could not be read correctly. Try reopening the file with another encoding."))
+            else:
+                self._loading = False
+                if previous is None or not previous.equal(file):
+                    # An empty buffer must not stay attached to a real file: saving would wipe it.
+                    self.file = previous
+                    self.source_file.set_location(previous)
+                    self.emit("state-changed")
+                self._toast(_("Could not open the file: {error}").format(error=error.message))
+                return
+        self._etag = self._query_etag(file)
         self.buffer.place_cursor(self.buffer.get_iter_at_offset(min(offset, self.buffer.get_char_count())))
         self._loading = False
         self.banner.set_revealed(False)
@@ -234,15 +259,39 @@ class Document(Gtk.Box):
         self.emit("state-changed")
 
     @staticmethod
-    def _decode(data):
-        """Zwraca (tekst, kodowanie). UTF-16 tylko ze znacznikiem BOM, bo bez niego prawie każde bajty „pasują”."""
-        if data.startswith((b"\xff\xfe", b"\xfe\xff")):
-            return data.decode("utf-16"), "UTF-16"
+    def _query_etag(file):
         try:
-            text = data.decode("utf-8")
-            return (text[1:] if text.startswith("\ufeff") else text), "utf-8"
-        except UnicodeDecodeError:
-            return data.decode("cp1250", errors="replace"), "Windows-1250"
+            return file.query_info("etag::value", Gio.FileQueryInfoFlags.NONE, None).get_etag()
+        except GLib.Error:
+            return None
+
+    @property
+    def encoding(self):
+        return self._save_encoding or self.source_file.get_encoding() or GtkSource.Encoding.get_utf8()
+
+    @property
+    def newline_type(self):
+        if self._save_newline is not None:
+            return self._save_newline
+        return self.source_file.get_newline_type() if self.file else GtkSource.NewlineType.LF
+
+    def set_save_encoding(self, encoding):
+        """Encoding for the next save (the document counts as changed until then)."""
+        if encoding.get_charset() != self.encoding.get_charset():
+            self._save_encoding = encoding
+            self.buffer.set_modified(True)
+            self.emit("state-changed")
+
+    def set_newline_type(self, newline):
+        if newline != self.newline_type:
+            self._save_newline = newline
+            self.buffer.set_modified(True)
+            self.emit("state-changed")
+
+    def reopen_with_encoding(self, encoding):
+        if self.file is not None:
+            self._save_encoding = None
+            self.load(self.file, encoding)
 
     def reload(self):
         if self.file is not None:
@@ -260,25 +309,34 @@ class Document(Gtk.Box):
         self.spelling.set_enabled(self.kind != "json" and settings.get().get_boolean("spellcheck"))
 
     def save(self, file=None, callback=None):
+        """Writes through GtkSource.FileSaver, keeping the file's encoding and line endings unless changed."""
         target = file or self.file
         if target is None:
             return
-        text = self.buffer.get_text(self.buffer.get_start_iter(), self.buffer.get_end_iter(), True)
-        data = GLib.Bytes.new(text.encode("utf-8"))
+        if self.file is not None and target.equal(self.file):
+            saver = GtkSource.FileSaver.new(self.buffer, self.source_file)
+        else:
+            saver = GtkSource.FileSaver.new_with_target(self.buffer, self.source_file, target)
+        saver.set_encoding(self.encoding)
+        saver.set_newline_type(self.newline_type)
+        # Changes on disk are reported by the banner; saving after it means "overwrite".
+        saver.set_flags(GtkSource.FileSaverFlags.IGNORE_MODIFICATION_TIME)
         serial = self._change_serial
+        renamed = self.file is None or not target.equal(self.file)
 
-        def done(f, result, _data):
+        def done(saver, result, _data):
             try:
-                _ok, etag = f.replace_contents_finish(result)
+                saver.save_finish(result)
             except GLib.Error as error:
                 self._toast(_("Could not save the file: {error}").format(error=error.message))
                 if callback:
                     callback(False)
                 return
-            self._etag = etag
-            renamed = file is not None and (self.file is None or not file.equal(self.file))
+            self._etag = self._query_etag(target)
+            self._save_encoding = None
+            self._save_newline = None
             self.file = target
-            # Tekst wpisany w trakcie zapisu nie trafił do pliku: dokument zostaje „zmodyfikowany”.
+            # Text typed while saving did not reach the file, so the document stays modified.
             self.buffer.set_modified(self._change_serial != serial)
             self.banner.set_revealed(False)
             if renamed:
@@ -292,7 +350,7 @@ class Document(Gtk.Box):
             if callback:
                 callback(True)
 
-        target.replace_contents_bytes_async(data, None, False, Gio.FileCreateFlags.NONE, None, done, None)
+        saver.save_async(GLib.PRIORITY_DEFAULT, None, None, None, done, None)
 
     def _watch_file(self):
         if self._monitor is not None:
