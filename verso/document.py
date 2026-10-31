@@ -15,6 +15,7 @@ from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk, GtkSource, Spelling
 
 from . import render, settings  # noqa: E402
 from .preferences import resolve_scheme  # noqa: E402
+from .statusbar import StatusBar  # noqa: E402
 
 PREVIEW_DELAY_MS = 250
 
@@ -65,10 +66,11 @@ class Document(Gtk.Box):
         self._preview_ready = False
         self._preview_timer = 0
         self._loading = False
-        self._change_serial = 0
+        self._change_serial = 0  # grows with every buffer change; detects typing during a save
         self.source_file = GtkSource.File()
         self._save_encoding = None  # set when the user picks another encoding for saving
-        self._save_newline = None  # rośnie przy każdej zmianie bufora; chroni przed „zapisane” po edycji w trakcie zapisu
+        self._save_newline = None
+        self._indent_override = None  # (insert_spaces, width) chosen in the status bar for this document
 
         self._build_banner()
         self._build_search()
@@ -83,6 +85,8 @@ class Document(Gtk.Box):
         self.paned.set_shrink_start_child(False)
         self.paned.set_shrink_end_child(False)
         self.append(self.paned)
+        self.statusbar = StatusBar(self)
+        self.append(self.statusbar)
 
         style = Adw.StyleManager.get_default()
         self._style_handler = style.connect("notify::dark", lambda *_: self._apply_theme())
@@ -386,6 +390,7 @@ class Document(Gtk.Box):
     EDITOR_KEYS = {
         "show-line-numbers", "highlight-current-line", "show-map", "show-whitespace", "show-right-margin",
         "right-margin-position", "tab-width", "insert-spaces", "auto-indent", "wrap-lines", "spellcheck",
+        "show-statusbar",
     }
 
     def _on_setting_changed(self, _settings, key):
@@ -401,9 +406,10 @@ class Document(Gtk.Box):
         view.set_highlight_current_line(prefs.get_boolean("highlight-current-line"))
         view.set_show_right_margin(prefs.get_boolean("show-right-margin"))
         view.set_right_margin_position(prefs.get_uint("right-margin-position"))
-        view.set_tab_width(prefs.get_uint("tab-width"))
+        spaces, width = self._indent_override or (prefs.get_boolean("insert-spaces"), prefs.get_uint("tab-width"))
+        view.set_tab_width(width)
         view.set_indent_width(-1)  # = tab width
-        view.set_insert_spaces_instead_of_tabs(prefs.get_boolean("insert-spaces"))
+        view.set_insert_spaces_instead_of_tabs(spaces)
         view.set_auto_indent(prefs.get_boolean("auto-indent"))
         view.set_wrap_mode(Gtk.WrapMode.WORD_CHAR if prefs.get_boolean("wrap-lines") else Gtk.WrapMode.NONE)
         if prefs.get_boolean("show-map"):
@@ -422,6 +428,22 @@ class Document(Gtk.Box):
             )
         drawer.set_enable_matrix(prefs.get_boolean("show-whitespace"))
         self.spelling.set_enabled(self.kind != "json" and prefs.get_boolean("spellcheck"))
+        self._update_statusbar_visibility()
+        if hasattr(self, "statusbar"):
+            self.statusbar.update()
+
+    def set_indent_override(self, insert_spaces, width):
+        self._indent_override = (insert_spaces, width)
+        self._apply_editor_settings()
+
+    def _update_statusbar_visibility(self):
+        if hasattr(self, "statusbar"):
+            self.statusbar.set_visible(settings.get().get_boolean("show-statusbar") and self.mode != "preview")
+
+    def show_goto(self):
+        if self.mode == "preview":
+            self.set_mode("edit")
+        self.statusbar.show_goto()
 
     def _default_mode(self):
         if not self.kind:
@@ -491,6 +513,7 @@ class Document(Gtk.Box):
             mode = "edit"
         self.mode = mode
         self.editor_box.set_visible(mode in ("edit", "split"))
+        self._update_statusbar_visibility()
         self.webview.set_visible(mode in ("split", "preview"))
         if mode == "split":
             GLib.idle_add(self._center_paned)
@@ -716,6 +739,7 @@ class Document(Gtk.Box):
     def shutdown(self):
         """Sprzątanie po zamknięciu karty: monitor pliku, timery i proces WebKit."""
         settings.get().disconnect(self._settings_handler)
+        self.statusbar.shutdown()
         Adw.StyleManager.get_default().disconnect(self._style_handler)
         if self._monitor is not None:
             self._monitor.cancel()

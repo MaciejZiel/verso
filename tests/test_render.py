@@ -89,3 +89,22 @@ def test_build_page_injects_strings_safely(monkeypatch):
     page = render.build_page()
     assert "window.VERSO_I18N" in page
     assert "</script><b>" not in page
+
+
+def test_parse_goto():
+    from verso.statusbar import parse_goto
+
+    assert parse_goto("12", 100) == (12, 0)
+    assert parse_goto(" 7:3 ", 100) == (7, 3)
+    assert parse_goto("500", 40) == (40, 0)
+    assert parse_goto("0", 40) == (1, 0)
+    assert parse_goto("abc", 40) == (None, None)
+    assert parse_goto("", 40) == (None, None)
+
+
+def test_count_words():
+    from verso.statusbar import count_words
+
+    assert count_words("Zażółć gęślą jaźń") == 3
+    assert count_words("don't stop — well-known  42") == 4
+    assert count_words("") == 0

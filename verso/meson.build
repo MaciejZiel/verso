@@ -19,6 +19,7 @@ install_data(
   'document.py',
   'render.py',
   'settings.py',
+  'statusbar.py',
   'preferences.py',
   'window.py',
   install_dir: moduledir,

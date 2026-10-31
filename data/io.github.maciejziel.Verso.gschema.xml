@@ -65,6 +65,10 @@
       <default>false</default>
       <summary>Show the overview map</summary>
     </key>
+    <key name="show-statusbar" type="b">
+      <default>true</default>
+      <summary>Show the status bar</summary>
+    </key>
     <key name="show-whitespace" type="b">
       <default>false</default>
       <summary>Show spaces and tabs</summary>

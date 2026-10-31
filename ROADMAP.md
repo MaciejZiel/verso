@@ -15,9 +15,9 @@ Status legend: [ ] todo, [~] in progress, [x] done.
 
 ## M2. Editor on par with GNOME Text Editor, then better
 
-- [ ] Load and save through `GtkSource.FileLoader` / `FileSaver`: encodings, line endings, BOM, compression
-- [ ] Status and properties popover: cursor position, encoding, line endings, indentation, language (each one changeable)
-- [ ] Go to line (Ctrl+L)
+- [x] Load and save through `GtkSource.FileLoader` / `FileSaver`: encodings, line endings, BOM, compression
+- [x] Status and properties popover: cursor position, encoding, line endings, indentation, language (each one changeable)
+- [x] Go to line (Ctrl+L)
 - [ ] Autosave drafts: unsaved documents survive closing the app and a reboot
 - [x] Overview map (`GtkSource.Map`) next to the editor
 - [x] Preferences: style scheme (all GtkSourceView schemes with live previews), custom font and size, tab width, spaces or tabs, line numbers, current-line highlight, visible whitespace, right margin, bracket auto-pairing, word wrap

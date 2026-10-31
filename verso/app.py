@@ -28,6 +28,7 @@ SHORTCUTS = {
     "win.replace": ["<Control>h"],
     "win.toggle-view": ["<Control>e"],
     "win.format-json": ["<Control><Shift>i"],
+    "win.goto-line": ["<Control>l"],
     "win.zoom-in": ["<Control>plus", "<Control>equal", "<Control>KP_Add"],
     "win.zoom-out": ["<Control>minus", "<Control>KP_Subtract"],
     "win.zoom-reset": ["<Control>0", "<Control>KP_0"],
@@ -164,7 +165,9 @@ class Application(Adw.Application):
         family, size = self._monospace_font()
         self._css.load_from_string(
             f'.verso-source {{ font-family: "{family}", monospace; font-size: {size * self.zoom:.1f}pt; }}\n'
-            ".verso-search { padding: 6px 8px; border-bottom: 1px solid alpha(currentColor, 0.12); }"
+            ".verso-search { padding: 6px 8px; border-bottom: 1px solid alpha(currentColor, 0.12); }\n"
+            ".verso-statusbar { border-top: 1px solid alpha(currentColor, 0.1); padding: 1px 4px; }\n"
+            ".verso-status-button > button { padding: 2px 8px; min-height: 22px; }"
         )
 
     def change_zoom(self, direction):
@@ -203,7 +206,7 @@ class Application(Adw.Application):
             (_("View"), ((_("Switch Between Edit and Preview"), "<Control>e"), (_("Zoom In"), "<Control>plus"),
                          (_("Zoom Out"), "<Control>minus"), (_("Reset Zoom"), "<Control>0"),
                          (_("Next Tab"), "<Control>Page_Down"), (_("Previous Tab"), "<Control>Page_Up"))),
-            (_("Editing"), ((_("Find"), "<Control>f"), (_("Find and Replace"), "<Control>h"),
+            (_("Editing"), ((_("Find"), "<Control>f"), (_("Find and Replace"), "<Control>h"), (_("Go to Line"), "<Control>l"),
                             (_("Format JSON"), "<Control><Shift>i"), (_("Undo"), "<Control>z"), (_("Redo"), "<Control><Shift>z"))),
         )
         for title, items in groups:

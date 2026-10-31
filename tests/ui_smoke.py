@@ -80,6 +80,34 @@ def steps(win):
     yield 300
     check("search works after reopen", md.buffer.get_has_selection())
     md.hide_search()
+    # pasek stanu: liczba słów, pozycja, przejdź do linii, język, wcięcia
+    md.set_mode("edit")
+    sb = md.statusbar
+    md.buffer.set_text("jeden dwa trzy\ncztery\npięć sześć")
+    yield 500
+    check("word count", sb.words.get_text() == "6 words")
+    md.buffer.select_range(md.buffer.get_start_iter(), md.buffer.get_iter_at_offset(9))
+    yield 500
+    check("selection word count", sb.words.get_text().startswith("2 words selected"))
+    win.lookup_action("goto-line").activate(None)
+    yield 300
+    sb.goto_entry.set_text("3:6")
+    sb.goto_entry.emit("activate")
+    yield 200
+    cursor = md.buffer.get_iter_at_mark(md.buffer.get_insert())
+    check("go to line", cursor.get_line() == 2 and cursor.get_line_offset() == 5 and sb.position.get_child().get_text() == "Ln 3, Col 6")
+    from gi.repository import GtkSource as _GS
+    sb._set_language(_GS.LanguageManager.get_default().get_language("python3"))
+    yield 100
+    check("language from status bar", md.buffer.get_language().get_id() == "python3" and sb.language.get_child().get_text() == "Python")
+    sb._syncing = True; sb.tabs_toggle.set_active(True); sb.width_spin.set_value(8); sb._syncing = False
+    sb._on_indent_changed()
+    check("indent override", not md.view.get_insert_spaces_instead_of_tabs() and md.view.get_tab_width() == 8
+          and sb.indent.get_child().get_text() == "Tab Width: 8")
+    md.set_mode("preview")
+    check("status bar hidden in preview", not sb.get_visible())
+    md.set_mode("edit")
+    md.buffer.set_modified(False)
     # pliki z Windows: cp1250 + CRLF wczytane poprawnie i zapisane bez zmiany kodowania i końców linii
     cp = f"{S}/e2e/windows.txt"
     Path(cp).write_bytes("Zażółć gęślą jaźń\r\ndruga linia\r\n".encode("cp1250"))
