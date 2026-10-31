@@ -21,4 +21,8 @@ fi
 # Session files and drafts of test runs go to a throwaway folder, never to the real ~/.local/share/verso.
 data_home="$(mktemp -d)"
 trap 'kill $shell 2>/dev/null; wait $shell 2>/dev/null; rm -f "$log"; rm -rf "$data_home"' EXIT
+# The real ~/.local/share stays readable through XDG_DATA_DIRS, so an app installed there
+# (GSettings schema, icons, translations) still works with the throwaway XDG_DATA_HOME.
+real_data_home="${XDG_DATA_HOME:-$HOME/.local/share}"
+XDG_DATA_DIRS="$real_data_home:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}" \
 XDG_DATA_HOME="${VERSO_TEST_DATA_HOME:-$data_home}" WAYLAND_DISPLAY="$display" GDK_BACKEND=wayland "$@"

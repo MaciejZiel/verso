@@ -15,13 +15,15 @@ configure_file(
 
 install_data(
   '__init__.py',
+  '__main__.py',
   'app.py',
   'document.py',
-  'render.py',
-  'settings.py',
-  'session.py',
-  'statusbar.py',
+  'md.py',
   'preferences.py',
+  'render.py',
+  'session.py',
+  'settings.py',
+  'statusbar.py',
   'window.py',
   install_dir: moduledir,
 )
@@ -35,4 +37,11 @@ install_data(
 install_subdir(
   'data/vendor',
   install_dir: moduledir / 'data',
+)
+
+# Every module in verso/ has to be in the list above; a missing one breaks only the installed app.
+test(
+  'install-list-complete',
+  py,
+  args: [meson.project_source_root() / 'tools' / 'check_install_list.py', meson.current_source_dir()],
 )
