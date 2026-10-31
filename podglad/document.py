@@ -1,7 +1,6 @@
 """Jedna karta: edytor GtkSourceView, podgląd WebKit, pasek wyszukiwania i obsługa pliku."""
 
 import json
-from pathlib import Path
 
 import gi
 
@@ -46,6 +45,7 @@ class Document(Gtk.Box):
         self._preview_ready = False
         self._preview_timer = 0
         self._loading = False
+        self._change_serial = 0  # rośnie przy każdej zmianie bufora; chroni przed „zapisane” po edycji w trakcie zapisu
 
         self._build_banner()
         self._build_search()
@@ -177,8 +177,7 @@ class Document(Gtk.Box):
         path = parent.get_path() if parent else None
         if not path:
             return self.file.get_uri()
-        home = str(Path.home())
-        return "~" + path[len(home) :] if path == home or path.startswith(home + "/") else path
+        return render.shorten_home(path)
 
     @property
     def modified(self):
@@ -189,19 +188,26 @@ class Document(Gtk.Box):
         return self.file is None and not self.modified and self.buffer.get_char_count() == 0
 
     def load(self, file):
+        previous = self.file
         self.file = file
         self._loading = True
         self.emit("state-changed")
-        file.load_contents_async(None, self._on_loaded, None)
+        file.load_contents_async(None, self._on_loaded, previous)
 
-    def _on_loaded(self, file, result, _data):
+    def _on_loaded(self, file, result, previous):
         try:
             _ok, contents, etag = file.load_contents_finish(result)
         except GLib.Error as error:
             self._loading = False
+            if previous is None or not previous.equal(file):
+                # Pusty bufor nie może zostać podpięty pod prawdziwy plik: zapis by go wyczyścił.
+                self.file = previous
+                self.emit("state-changed")
             self._toast(f"Nie udało się otworzyć pliku: {error.message}")
             return
-        text = self._decode(bytes(contents))
+        text, encoding = self._decode(bytes(contents))
+        if encoding != "utf-8":
+            self._toast(f"Plik w kodowaniu {encoding}: zapis zamieni go na UTF-8.")
         self._etag = etag
         offset = self.buffer.get_property("cursor-position")
         self.buffer.begin_irreversible_action()
@@ -222,13 +228,14 @@ class Document(Gtk.Box):
 
     @staticmethod
     def _decode(data):
-        for encoding in ("utf-8", "utf-16"):
-            try:
-                text = data.decode(encoding)
-                return text[1:] if text.startswith("﻿") else text
-            except UnicodeDecodeError:
-                continue
-        return data.decode("cp1250", errors="replace")
+        """Zwraca (tekst, kodowanie). UTF-16 tylko ze znacznikiem BOM, bo bez niego prawie każde bajty „pasują”."""
+        if data.startswith((b"\xff\xfe", b"\xfe\xff")):
+            return data.decode("utf-16"), "UTF-16"
+        try:
+            text = data.decode("utf-8")
+            return (text[1:] if text.startswith("\ufeff") else text), "utf-8"
+        except UnicodeDecodeError:
+            return data.decode("cp1250", errors="replace"), "Windows-1250"
 
     def reload(self):
         if self.file is not None:
@@ -251,6 +258,7 @@ class Document(Gtk.Box):
             return
         text = self.buffer.get_text(self.buffer.get_start_iter(), self.buffer.get_end_iter(), True)
         data = GLib.Bytes.new(text.encode("utf-8"))
+        serial = self._change_serial
 
         def done(f, result, _data):
             try:
@@ -263,7 +271,8 @@ class Document(Gtk.Box):
             self._etag = etag
             renamed = file is not None and (self.file is None or not file.equal(self.file))
             self.file = target
-            self.buffer.set_modified(False)
+            # Tekst wpisany w trakcie zapisu nie trafił do pliku: dokument zostaje „zmodyfikowany”.
+            self.buffer.set_modified(self._change_serial != serial)
             self.banner.set_revealed(False)
             if renamed:
                 old_kind = self.kind
@@ -288,8 +297,13 @@ class Document(Gtk.Box):
             return
         self._monitor.connect("changed", self._on_file_changed)
 
-    def _on_file_changed(self, _monitor, _file, _other, event):
-        if event not in (Gio.FileMonitorEvent.CHANGES_DONE_HINT, Gio.FileMonitorEvent.CREATED):
+    def _on_file_changed(self, _monitor, _file, other, event):
+        events = Gio.FileMonitorEvent
+        if event == events.RENAMED:
+            # Zapis atomowy (plik tymczasowy przemianowany na nasz) zmienia treść; przemianowanie naszego pliku nie.
+            if other is None or not other.equal(self.file):
+                return
+        elif event not in (events.CHANGES_DONE_HINT, events.CREATED, events.MOVED_IN):
             return
         try:
             info = self.file.query_info("etag::value", Gio.FileQueryInfoFlags.NONE, None)
@@ -378,6 +392,7 @@ class Document(Gtk.Box):
             self._schedule_preview(immediate=True)
 
     def _on_buffer_changed(self, *_):
+        self._change_serial += 1
         if not self._loading:
             self._schedule_preview()
 
@@ -437,6 +452,9 @@ class Document(Gtk.Box):
         self.search_revealer.set_reveal_child(True)
         self.search_entry.grab_focus()
         self.search_entry.select_region(0, -1)
+        # hide_search czyści wyszukiwanie, a tekst w polu zostaje: przywróć je.
+        if self.search_entry.get_text():
+            self._on_search_changed(self.search_entry)
 
     def hide_search(self):
         self.search_revealer.set_reveal_child(False)
@@ -526,6 +544,16 @@ class Document(Gtk.Box):
         if self.search_entry.get_text():
             count = self.search_context.replace_all(self.replace_entry.get_text(), -1)
             self._toast(f"Zamieniono: {count}")
+
+    def shutdown(self):
+        """Sprzątanie po zamknięciu karty: monitor pliku, timery i proces WebKit."""
+        if self._monitor is not None:
+            self._monitor.cancel()
+            self._monitor = None
+        if self._preview_timer:
+            GLib.source_remove(self._preview_timer)
+            self._preview_timer = 0
+        self.webview.terminate_web_process()
 
     # ---------- pomocnicze ----------
 

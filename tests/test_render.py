@@ -55,3 +55,20 @@ def test_build_page_has_nonce_csp():
     assert "script-src 'nonce-" in page
     assert "window.podglad" in page
     assert "html.dark .highlight" in page
+
+
+def test_toc_names_are_plain_text():
+    _, toc = render_markdown("# A &amp; B\n\n# x < y\n")
+    assert [name for _, _, name in toc] == ["A & B", "x < y"]
+
+
+def test_jsonc_has_no_json_preview():
+    assert kind_of("settings.jsonc") is None
+
+
+def test_shorten_home():
+    from podglad.render import shorten_home
+
+    assert shorten_home("/home/ja/Rinvo", "/home/ja") == "~/Rinvo"
+    assert shorten_home("/home/ja", "/home/ja") == "~"
+    assert shorten_home("/home/ja2/x", "/home/ja") == "/home/ja2/x"

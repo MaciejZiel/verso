@@ -259,10 +259,16 @@ class Window(Adw.ApplicationWindow):
 
     def _on_close_page(self, view, page):
         doc = page.get_child()
+
+        def finish(ok):
+            if ok:
+                doc.shutdown()
+            view.close_page_finish(page, ok)
+
         if not doc.modified:
-            view.close_page_finish(page, True)
-            return True
-        self._confirm_save(doc, lambda ok: view.close_page_finish(page, ok))
+            finish(True)
+        else:
+            self._confirm_save(doc, finish)
         return True
 
     def _on_pages_changed(self, *_):
@@ -275,6 +281,8 @@ class Window(Adw.ApplicationWindow):
         pending = [d for d in self.documents if d.modified]
         if not pending:
             self._closing = True
+            for doc in self.documents:
+                doc.shutdown()
             return False
 
         def step(ok):
@@ -367,9 +375,7 @@ class Window(Adw.ApplicationWindow):
             if not (mime.startswith("text/") or mime == "application/json" or render.kind_of(path.name)):
                 continue
             row = Adw.ActionRow(title=GLib.markup_escape_text(path.name), activatable=True)
-            parent = str(path.parent)
-            home = str(Path.home())
-            row.set_subtitle(GLib.markup_escape_text("~" + parent[len(home) :] if parent.startswith(home) else parent))
+            row.set_subtitle(GLib.markup_escape_text(render.shorten_home(str(path.parent))))
             row.uri = item.get_uri()
             row.search_text = str(path).lower()
             self.recent_list.append(row)
@@ -383,7 +389,8 @@ class Window(Adw.ApplicationWindow):
         return not query or query in row.search_text
 
     def _activate_first_recent(self):
-        row = next((r for r in self._rows() if r.get_child_visible() and self._filter_recent(r)), None)
+        # Wśród dzieci listy jest też etykieta „Brak ostatnich plików”: bierzemy tylko wiersze plików.
+        row = next((r for r in self._rows() if hasattr(r, "uri") and self._filter_recent(r)), None)
         if row:
             self._on_recent_activated(self.recent_list, row)
 

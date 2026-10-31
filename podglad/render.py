@@ -1,5 +1,6 @@
 """Czyste funkcje bez GTK: rozpoznanie rodzaju pliku i zamiana treści na dane podglądu."""
 
+import html as html_lib
 import json
 import re
 import secrets
@@ -15,9 +16,17 @@ from pygments.formatters import HtmlFormatter
 DATA_DIR = Path(__file__).parent / "data"
 
 MARKDOWN_SUFFIXES = {".md", ".markdown", ".mdown", ".mkd"}
-JSON_SUFFIXES = {".json", ".jsonc", ".geojson", ".webmanifest"}
+JSON_SUFFIXES = {".json", ".geojson", ".webmanifest"}  # bez .jsonc: komentarzy json.loads nie przyjmie
 
 _TASK = re.compile(r"^\[([ xX])\]\s+")
+
+
+def shorten_home(path, home=None):
+    """/home/ja/x → ~/x, jak w tytułach okien GNOME."""
+    home = home or str(Path.home())
+    if path == home or path.startswith(home + "/"):
+        return "~" + path[len(home) :]
+    return path
 
 
 def kind_of(name):
@@ -80,7 +89,8 @@ def render_markdown(text):
 
     def walk(tokens):
         for token in tokens:
-            toc.append((token["level"], token["id"], token["name"]))
+            # „name” jest już zakodowane w HTML, a spis treści wstawia zwykły tekst.
+            toc.append((token["level"], token["id"], html_lib.unescape(token["name"])))
             walk(token["children"])
 
     walk(getattr(md, "toc_tokens", []))  # atrybut dodaje rozszerzenie toc

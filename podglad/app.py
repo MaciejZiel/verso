@@ -65,7 +65,7 @@ class Application(Adw.Application):
         self._apply_css()
         for name, callback in (
             ("new-window", self._new_window),
-            ("quit", self.quit),
+            ("quit", self._quit),
             ("about", self._about),
             ("shortcuts", self._shortcuts),
         ):
@@ -89,6 +89,11 @@ class Application(Adw.Application):
         window.present()
         self._maybe_screenshot(window)
 
+    def _quit(self):
+        # Przez close(), żeby każde okno zapytało o niezapisane zmiany (sam quit() to pomija).
+        for window in list(self.get_windows()):
+            window.close()
+
     def _new_window(self):
         window = Window(self)
         window.present()
@@ -99,10 +104,11 @@ class Application(Adw.Application):
     # ---------- wygląd ----------
 
     def _monospace_font(self):
-        try:
+        # Gio.Settings.new przy braku schematu przerywa proces, więc najpierw sprawdzamy, czy schemat jest.
+        name = "Monospace 11"
+        source = Gio.SettingsSchemaSource.get_default()
+        if source is not None and source.lookup("org.gnome.desktop.interface", True) is not None:
             name = Gio.Settings.new("org.gnome.desktop.interface").get_string("monospace-font-name")
-        except GLib.Error:
-            name = "Monospace 11"
         desc = Pango.FontDescription.from_string(name or "Monospace 11")
         size = desc.get_size() / Pango.SCALE or 11
         return desc.get_family() or "Monospace", size
