@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: verso\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-31 22:50+0100\n"
+"POT-Creation-Date: 2026-10-31 22:58+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -259,7 +259,7 @@ msgstr ""
 msgid "Editing"
 msgstr ""
 
-#: verso/app.py:237 verso/document.py:160
+#: verso/app.py:237 verso/document.py:175
 msgid "Find"
 msgstr ""
 
@@ -283,158 +283,184 @@ msgstr ""
 msgid "Redo"
 msgstr ""
 
-#: verso/document.py:105
+#: verso/document.py:118
 msgid "The file has changed on disk."
 msgstr ""
 
-#: verso/document.py:105
+#: verso/document.py:118
 msgid "_Reload"
 msgstr ""
 
-#: verso/document.py:169
+#: verso/document.py:184
 msgid "Previous Match (Shift+Enter)"
 msgstr ""
 
-#: verso/document.py:171
+#: verso/document.py:186
 msgid "Next Match (Enter)"
 msgstr ""
 
-#: verso/document.py:177
+#: verso/document.py:192
 msgid "Replace (Ctrl+H)"
 msgstr ""
 
-#: verso/document.py:178
+#: verso/document.py:193
 msgid "Match Case"
 msgstr ""
 
-#: verso/document.py:187
+#: verso/document.py:202
 msgid "Replace with"
 msgstr ""
 
-#: verso/document.py:189
+#: verso/document.py:204
 msgid "Replace"
 msgstr ""
 
-#: verso/document.py:191
+#: verso/document.py:206
 msgid "Replace All"
 msgstr ""
 
-#: verso/document.py:210
+#: verso/document.py:225
 #, python-brace-format
 msgid "New Document {number}"
 msgstr ""
 
-#: verso/document.py:210 verso/window.py:257
+#: verso/document.py:225 verso/window.py:257
 msgid "New Document"
 msgstr ""
 
-#: verso/document.py:216
+#: verso/document.py:231
 msgid "Draft"
 msgstr ""
 
 #. Loaded, but some bytes did not fit the encoding and were replaced.
-#: verso/document.py:251
+#: verso/document.py:266
 msgid ""
 "Some characters could not be read correctly. Try reopening the file with "
 "another encoding."
 msgstr ""
 
-#: verso/document.py:259
+#: verso/document.py:274
 #, python-brace-format
 msgid "Could not open the file: {error}"
 msgstr ""
 
-#: verso/document.py:316
+#: verso/document.py:331
 msgid "Discard Changes and Reopen?"
 msgstr ""
 
-#: verso/document.py:317
+#: verso/document.py:332
 #, python-brace-format
 msgid ""
 "Reopening “{title}” with another encoding replaces your unsaved changes with "
 "the file on disk."
 msgstr ""
 
-#: verso/document.py:319 verso/window.py:362
+#: verso/document.py:334 verso/window.py:362
 msgid "_Cancel"
 msgstr ""
 
-#: verso/document.py:320
+#: verso/document.py:335
 msgid "_Discard and Reopen"
 msgstr ""
 
-#: verso/document.py:363
+#: verso/document.py:378
 #, python-brace-format
 msgid "Could not save the file: {error}"
 msgstr ""
 
-#: verso/document.py:585
+#: verso/document.py:600
 msgid "Formatting is available only for JSON files."
 msgstr ""
 
-#: verso/document.py:591
+#: verso/document.py:606
 #, python-brace-format
 msgid "Invalid JSON. {error}"
 msgstr ""
 
-#: verso/document.py:797
+#: verso/document.py:834
 #, python-brace-format
 msgid "{position} of {total}"
 msgstr ""
 
-#: verso/document.py:797
+#: verso/document.py:834
 msgid "No matches"
 msgstr ""
 
-#: verso/document.py:810
+#: verso/document.py:847
 #, python-brace-format
 msgid "Replaced {count} match"
 msgid_plural "Replaced {count} matches"
 msgstr[0] ""
 msgstr[1] ""
 
-#: verso/document.py:846
+#: verso/document.py:883
 #, python-brace-format
 msgid "Could not keep a backup of unsaved changes: {error}"
 msgstr ""
 
-#: verso/render.py:49
+#: verso/render.py:57 verso/render.py:140
 #, python-brace-format
 msgid "Line {line}, column {column}: {message}"
 msgstr ""
 
-#: verso/render.py:72
+#: verso/render.py:80
 msgid "Contents"
 msgstr ""
 
-#: verso/render.py:73
+#: verso/render.py:81
 msgid "Search keys and values…"
 msgstr ""
 
-#: verso/render.py:74
+#: verso/render.py:82
 msgid "Expand All"
 msgstr ""
 
-#: verso/render.py:75
+#: verso/render.py:83
 msgid "Collapse All"
 msgstr ""
 
-#: verso/render.py:76
+#: verso/render.py:84
 msgid "Raw"
 msgstr ""
 
 #. Translators: count of search results in the JSON preview, e.g. "Matches: 3".
-#: verso/render.py:78
+#: verso/render.py:86
 #, python-brace-format
 msgid "Matches: {count}"
 msgstr ""
 
-#: verso/render.py:79
-msgid "Invalid JSON."
+#: verso/render.py:87
+msgid "No preview for this file type."
 msgstr ""
 
-#: verso/render.py:80
-msgid "No preview for this file type."
+#: verso/render.py:88
+msgid "Filter rows…"
+msgstr ""
+
+#. Translators: e.g. "Rows: 120"
+#: verso/render.py:90
+#, python-brace-format
+msgid "Rows: {count}"
+msgstr ""
+
+#. Translators: the table preview shows only the start of very long files.
+#: verso/render.py:92
+#, python-brace-format
+msgid "Showing the first {shown} of {total} rows"
+msgstr ""
+
+#: verso/render.py:93
+msgid "The file has no rows."
+msgstr ""
+
+#: verso/render.py:117
+#, python-brace-format
+msgid "Line {line}, column {column}: "
+msgstr ""
+
+#: verso/render.py:196
+#, python-brace-format
+msgid "Invalid {format}. {error}"
 msgstr ""
 
 #: verso/window.py:35
@@ -611,7 +637,7 @@ msgstr ""
 msgid "Behavior"
 msgstr ""
 
-#: verso/preferences.py:108 verso/statusbar.py:55
+#: verso/preferences.py:108 verso/statusbar.py:57
 msgid "Indentation"
 msgstr ""
 
@@ -671,102 +697,102 @@ msgstr ""
 msgid "The preview follows the editor and the other way round"
 msgstr ""
 
-#: verso/statusbar.py:20
+#: verso/statusbar.py:22
 msgid "Unix and macOS (LF)"
 msgstr ""
 
-#: verso/statusbar.py:21
+#: verso/statusbar.py:23
 msgid "Windows (CRLF)"
 msgstr ""
 
-#: verso/statusbar.py:22
+#: verso/statusbar.py:24
 msgid "Classic Mac OS (CR)"
 msgstr ""
 
-#: verso/statusbar.py:50
+#: verso/statusbar.py:52
 msgid "Go to Line (Ctrl+L)"
 msgstr ""
 
-#: verso/statusbar.py:52
+#: verso/statusbar.py:54
 msgid "Syntax Highlighting"
 msgstr ""
 
-#: verso/statusbar.py:57
+#: verso/statusbar.py:59
 msgid "Encoding"
 msgstr ""
 
-#: verso/statusbar.py:59
+#: verso/statusbar.py:61
 msgid "Line Endings"
 msgstr ""
 
-#: verso/statusbar.py:79 verso/statusbar.py:194 verso/statusbar.py:196
+#: verso/statusbar.py:81 verso/statusbar.py:196 verso/statusbar.py:198
 msgid "Plain Text"
-msgstr ""
-
-#: verso/statusbar.py:82
-#, python-brace-format
-msgid "Spaces: {width}"
 msgstr ""
 
 #: verso/statusbar.py:84
 #, python-brace-format
+msgid "Spaces: {width}"
+msgstr ""
+
+#: verso/statusbar.py:86
+#, python-brace-format
 msgid "Tab Width: {width}"
 msgstr ""
 
-#: verso/statusbar.py:97
+#: verso/statusbar.py:99
 #, python-brace-format
 msgid "Ln {line}, Col {column}"
 msgstr ""
 
-#: verso/statusbar.py:126
+#: verso/statusbar.py:128
 #, python-brace-format
 msgid "{count} word selected"
 msgid_plural "{count} words selected"
 msgstr[0] ""
 msgstr[1] ""
 
-#: verso/statusbar.py:127
+#: verso/statusbar.py:129
 #, python-brace-format
 msgid "{count} character"
 msgid_plural "{count} characters"
 msgstr[0] ""
 msgstr[1] ""
 
-#: verso/statusbar.py:130
+#: verso/statusbar.py:132
 #, python-brace-format
 msgid "{count} word"
 msgid_plural "{count} words"
 msgstr[0] ""
 msgstr[1] ""
 
-#: verso/statusbar.py:142
+#: verso/statusbar.py:144
 msgid "Line or line:column"
 msgstr ""
 
-#: verso/statusbar.py:146
+#: verso/statusbar.py:148
 msgid "Go"
 msgstr ""
 
-#: verso/statusbar.py:187
+#: verso/statusbar.py:189
 msgid "Search Languages"
 msgstr ""
 
-#: verso/statusbar.py:227
+#: verso/statusbar.py:229
 msgid "Spaces"
 msgstr ""
 
-#: verso/statusbar.py:228
+#: verso/statusbar.py:230
 msgid "Tabs"
 msgstr ""
 
-#: verso/statusbar.py:231
+#: verso/statusbar.py:233
 msgid "Width"
 msgstr ""
 
-#: verso/statusbar.py:272
+#: verso/statusbar.py:274
 msgid "Save With Encoding"
 msgstr ""
 
-#: verso/statusbar.py:272
+#: verso/statusbar.py:274
 msgid "Reopen With Encoding"
 msgstr ""

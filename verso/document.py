@@ -26,6 +26,17 @@ _WINDOWS_FIRST = {"ISO-8859-1": "WINDOWS-1252", "ISO-8859-15": "WINDOWS-1252", "
                   "ISO-8859-5": "WINDOWS-1251", "ISO-8859-7": "WINDOWS-1253", "ISO-8859-9": "WINDOWS-1254"}
 
 
+_EPHEMERAL = None
+
+
+def _preview_session():
+    """One shared ephemeral WebKit session: previews never store cookies, caches or site data on disk."""
+    global _EPHEMERAL
+    if _EPHEMERAL is None:
+        _EPHEMERAL = WebKit.NetworkSession.new_ephemeral()
+    return _EPHEMERAL
+
+
 def candidate_encodings():
     result, seen = [GtkSource.Encoding.get_utf8()], {"UTF-8"}
     for encoding in GtkSource.Encoding.get_default_candidates():
@@ -65,6 +76,8 @@ class Document(Gtk.Box):
         self._etag = None
         self._monitor = None
         self._preview_ready = False
+        self._html_shown = False
+        self._html_serial = 0
         self._preview_timer = 0
         self._loading = False
         self._change_serial = 0  # grows with every buffer change; detects typing during a save
@@ -147,7 +160,9 @@ class Document(Gtk.Box):
         content = WebKit.UserContentManager()
         content.register_script_message_handler("verso", None)
         content.connect("script-message-received::verso", self._on_preview_message)
-        self.webview = WebKit.WebView(hexpand=True, vexpand=True, user_content_manager=content)
+        self.webview = WebKit.WebView(
+            hexpand=True, vexpand=True, user_content_manager=content, network_session=_preview_session()
+        )
         settings = self.webview.get_settings()
         settings.set_enable_developer_extras(False)
         settings.set_allow_file_access_from_file_urls(True)
@@ -336,7 +351,7 @@ class Document(Gtk.Box):
             language = manager.get_language("markdown")
         self.buffer.set_language(language)
         # JSON i kod nie potrzebują słownika; Markdown i zwykły tekst tak.
-        self.spelling.set_enabled(self.kind != "json" and settings.get().get_boolean("spellcheck"))
+        self.spelling.set_enabled(self.kind not in render.DATA_KINDS and settings.get().get_boolean("spellcheck"))
 
     def save(self, file=None, callback=None):
         """Writes through GtkSource.FileSaver, keeping the file's encoding and line endings unless changed."""
@@ -460,7 +475,7 @@ class Document(Gtk.Box):
                 GtkSource.SpaceTypeFlags.SPACE | GtkSource.SpaceTypeFlags.TAB | GtkSource.SpaceTypeFlags.NBSP,
             )
         drawer.set_enable_matrix(prefs.get_boolean("show-whitespace"))
-        self.spelling.set_enabled(self.kind != "json" and prefs.get_boolean("spellcheck"))
+        self.spelling.set_enabled(self.kind not in render.DATA_KINDS and prefs.get_boolean("spellcheck"))
         self._update_statusbar_visibility()
         self.statusbar.update()
 
@@ -603,15 +618,33 @@ class Document(Gtk.Box):
 
     def _load_page(self):
         self._preview_ready = False
+        self._html_shown = False
+        self.webview.get_settings().set_enable_javascript_markup(True)
         base = self.file.get_parent().get_uri() + "/" if self.file and self.file.get_parent() else "file:///"
         self._base_uri = base
         self.webview.load_html(render.build_page(), base)
 
     def _on_load_changed(self, _webview, event):
-        if event == WebKit.LoadEvent.FINISHED:
-            self._preview_ready = True
-            self._apply_theme()
-            self._schedule_preview(immediate=True)
+        if event != WebKit.LoadEvent.FINISHED:
+            return
+        self._preview_ready = True
+        if self._html_shown:
+            # An HTML file is shown as itself; reload only if it changed while this load ran.
+            if self._change_serial != self._html_serial:
+                self._schedule_preview()
+            return
+        self._apply_theme()
+        self._schedule_preview(immediate=True)
+
+    def _show_html(self, text):
+        """HTML files are rendered as real pages, with JavaScript off (opening a file must not run code)."""
+        self._preview_ready = False
+        self._html_shown = True
+        self._html_serial = self._change_serial
+        self.webview.get_settings().set_enable_javascript_markup(False)  # page scripts off; our API calls still work
+        base = self.file.get_parent().get_uri() + "/" if self.file and self.file.get_parent() else "file:///"
+        self._base_uri = base
+        self.webview.load_html(text, base)
 
     def _on_buffer_changed(self, *_):
         self._change_serial += 1
@@ -632,13 +665,17 @@ class Document(Gtk.Box):
         self._preview_timer = 0
         if not self._preview_ready or not self.kind or self.mode == "edit":
             return GLib.SOURCE_REMOVE
-        # Względne obrazki i linki mają się odnosić do katalogu pliku.
+        text = self.buffer.get_text(self.buffer.get_start_iter(), self.buffer.get_end_iter(), True)
+        if self.kind == "html":
+            self._show_html(text)
+            return GLib.SOURCE_REMOVE
+        # Relative images and links resolve against the file's folder; leaving HTML mode needs our page back.
         expected = self.file.get_parent().get_uri() + "/" if self.file and self.file.get_parent() else "file:///"
-        if expected != self._base_uri:
+        if expected != self._base_uri or self._html_shown:
             self._load_page()
             return GLib.SOURCE_REMOVE
-        text = self.buffer.get_text(self.buffer.get_start_iter(), self.buffer.get_end_iter(), True)
-        payload = render.preview_payload(self.kind, text)
+        name = self.file.get_basename() if self.file else ""
+        payload = render.preview_payload(self.kind, text, name)
         self._run_js(f"window.verso.update({json.dumps(payload, ensure_ascii=False)})")
         return GLib.SOURCE_REMOVE
 

@@ -18,4 +18,7 @@ done
 if [ ! -S "${XDG_RUNTIME_DIR}/${display}" ]; then
   echo "headless gnome-shell did not start:" >&2; cat "$log" >&2; exit 1
 fi
-WAYLAND_DISPLAY="$display" GDK_BACKEND=wayland "$@"
+# Session files and drafts of test runs go to a throwaway folder, never to the real ~/.local/share/verso.
+data_home="$(mktemp -d)"
+trap 'kill $shell 2>/dev/null; wait $shell 2>/dev/null; rm -f "$log"; rm -rf "$data_home"' EXIT
+XDG_DATA_HOME="${VERSO_TEST_DATA_HOME:-$data_home}" WAYLAND_DISPLAY="$display" GDK_BACKEND=wayland "$@"

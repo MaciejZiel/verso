@@ -104,6 +104,40 @@ def steps(win):
     it, _t = md.view.get_line_at_y(int(adj.get_value()))
     check("preview scroll moves editor", 355 <= it.get_line() <= 365)
     md.buffer.set_modified(False)
+    # podglądy formatów: CSV, YAML, XML, HTML (bez skryptów), SVG
+    def js_value(view, script, store, key):
+        view.evaluate_javascript(script, -1, None, None, None,
+                                 lambda w, r, _u: store.setdefault(key, w.evaluate_javascript_finish(r).to_string()), None)
+    files = {
+        "dane.csv": "miasto;ludność\nKraków;800000\nŁódź;650000\nGdańsk;480000\n",
+        "konf.yaml": "serwer:\n  port: 8080\n  hosty: [a, b]\n",
+        "feed.xml": "<rss><channel><title>Wiadomości</title></channel></rss>",
+        "strona.html": "<h1 id='t'>Nagłówek</h1><script>document.getElementById('t').textContent='SKRYPT'</script>",
+        "ikona.svg": "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><rect width='10' height='10'/></svg>",
+    }
+    opened = {}
+    for name, content in files.items():
+        Path(f"{S}/e2e/{name}").write_text(content)
+        opened[name] = win.open_file(Gio.File.new_for_path(f"{S}/e2e/{name}"))
+    yield 1500
+    out = {}
+    csv_doc = opened["dane.csv"]
+    js_value(csv_doc.webview, "document.getElementById('json-count').textContent", out, "rows")
+    js_value(csv_doc.webview, "document.querySelector('.data-table th:nth-child(2)').click(); document.querySelector('.data-table tbody td').textContent", out, "sorted")
+    js_value(opened["konf.yaml"].webview, "[...document.querySelectorAll('.jkey')].map(e => e.textContent).join(',')", out, "yaml")
+    js_value(opened["feed.xml"].webview, "document.querySelector('#json-tree').textContent", out, "xml")
+    js_value(opened["strona.html"].webview, "document.getElementById('t').textContent", out, "html")
+    js_value(opened["ikona.svg"].webview, "document.querySelector('.image-preview img') ? 'img' : ''", out, "svg")
+    yield 800
+    check("csv table", out.get("rows") == "Rows: 3" and out.get("sorted") == "Gdańsk")
+    check("yaml tree", out.get("yaml") == '"serwer","port","hosty",0,1')
+    check("xml tree", "Wiadomości" in out.get("xml", ""))
+    check("html preview without scripts", out.get("html") == "Nagłówek")
+    check("svg preview", out.get("svg") == "img")
+    check("no spell check in data files", not csv_doc.spelling.get_enabled() and csv_doc.statusbar.words.get_text() == "")
+    for doc in opened.values():
+        win.tab_view.close_page(win.tab_view.get_page(doc))
+    yield 400
     # pasek stanu: liczba słów, pozycja, przejdź do linii, język, wcięcia
     md.set_mode("edit")
     sb = md.statusbar

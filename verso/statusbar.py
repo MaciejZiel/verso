@@ -7,6 +7,8 @@ from gettext import ngettext
 
 from gi.repository import Gio, GLib, Gtk, GtkSource
 
+from . import render
+
 COUNT_DELAY_MS = 300
 COUNT_LIMIT = 2_000_000  # characters; above this the word count would slow typing down
 _WORD = re.compile(r"\w+(?:[-'’]\w+)*")
@@ -116,7 +118,7 @@ class StatusBar(Gtk.Box):
     def _update_count(self):
         self._count_timer = 0
         buffer = self.doc.buffer
-        if buffer.get_char_count() > COUNT_LIMIT or self.doc.kind == "json":
+        if buffer.get_char_count() > COUNT_LIMIT or self.doc.kind in render.DATA_KINDS:
             self.words.set_text("")
             return GLib.SOURCE_REMOVE
         bounds = buffer.get_selection_bounds()

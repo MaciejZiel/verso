@@ -11,8 +11,11 @@
       collapseAll: "Collapse All",
       raw: "Raw",
       matches: "Matches: {count}",
-      invalidJson: "Invalid JSON.",
       noPreview: "No preview for this file type.",
+      searchTable: "Filter rows…",
+      rows: "Rows: {count}",
+      truncated: "Showing the first {shown} of {total} rows",
+      emptyTable: "The file has no rows.",
     },
     window.VERSO_I18N || {},
   );
@@ -297,7 +300,7 @@
   function renderTree(payload) {
     root.innerHTML = "";
     if (payload.error) {
-      root.append(el("div", "error", T.invalidJson + " " + payload.error));
+      root.append(el("div", "error", payload.error));
       return;
     }
     const bar = el("div");
@@ -312,7 +315,10 @@
     const expand = el("button", "", T.expandAll);
     const collapse = el("button", "", T.collapseAll);
     const raw = el("button", jsonState.raw ? "on" : "", T.raw);
-    bar.append(search, count, expand, collapse, raw);
+    bar.append(search, count, expand, collapse);
+    // "Raw" pretty-prints JSON; for YAML/TOML/XML the editor already shows the source.
+    if (payload.format === "json") bar.append(raw);
+    else jsonState.raw = false;
     root.append(bar);
 
     const body = el("div");
@@ -360,10 +366,22 @@
       draw();
     });
 
-    // First open: two levels expanded.
+    // First open: two levels expanded, and chains of single containers (XML wrappers, {"data": {...}})
+    // keep opening until something with more than one child shows up.
     if (current !== payload.kind) {
       jsonState.open = new Set(["$"]);
       for (const [key] of childrenOf(payload.tree)) jsonState.open.add("$/" + key);
+      let node = payload.tree;
+      let path = "$";
+      for (let depth = 0; depth < 12; depth++) {
+        const containers = childrenOf(node).filter(([, child]) => child.o || child.a);
+        if (childrenOf(node).length !== 1 || containers.length !== 1) break;
+        const [key, child] = containers[0];
+        path += "/" + key;
+        jsonState.open.add(path);
+        for (const [grandKey] of childrenOf(child)) jsonState.open.add(path + "/" + grandKey);
+        node = child;
+      }
     }
     draw();
   }
@@ -436,12 +454,123 @@
   }
   window.addEventListener("scroll", () => requestAnimationFrame(reportScroll), { passive: true });
 
+  // ---------- CSV / TSV table ----------
+  let tableState = { sortColumn: -1, descending: false, query: "" };
+
+  function sortKey(value) {
+    const number = Number(String(value).replace(/\s/g, "").replace(",", "."));
+    return value !== "" && Number.isFinite(number) ? number : null;
+  }
+
+  function renderTable(payload) {
+    root.innerHTML = "";
+    if (!payload.header.length) {
+      root.append(el("div", "empty", T.emptyTable));
+      return;
+    }
+    const bar = el("div");
+    bar.id = "json-bar";
+    const search = el("input");
+    search.id = "json-search";
+    search.type = "search";
+    search.placeholder = T.searchTable;
+    search.value = tableState.query;
+    const count = el("span");
+    count.id = "json-count";
+    bar.append(search, count);
+    if (payload.total > payload.rows.length) {
+      bar.append(el("span", "table-note", T.truncated.replace("{shown}", payload.rows.length).replace("{total}", payload.total)));
+    }
+    root.append(bar);
+
+    const wrap = el("div", "table-wrap");
+    const table = el("table", "data-table");
+    const head = el("thead");
+    const headRow = el("tr");
+    head.append(headRow);
+    const body = el("tbody");
+    table.append(head, body);
+    wrap.append(table);
+    root.append(wrap);
+
+    const width = payload.header.length;
+    payload.header.forEach((name, column) => {
+      const th = el("th", "", name || String(column + 1));
+      th.addEventListener("click", () => {
+        if (tableState.sortColumn === column) tableState.descending = !tableState.descending;
+        else {
+          tableState.sortColumn = column;
+          tableState.descending = false;
+        }
+        draw();
+      });
+      headRow.append(th);
+    });
+
+    function draw() {
+      const query = tableState.query.trim().toLowerCase();
+      let rows = payload.rows;
+      if (query) rows = rows.filter((row) => row.some((cell) => cell.toLowerCase().includes(query)));
+      if (tableState.sortColumn >= 0) {
+        const c = tableState.sortColumn;
+        const numeric = rows.every((row) => (row[c] || "") === "" || sortKey(row[c]) !== null);
+        rows = [...rows].sort((a, b) => {
+          const x = a[c] || "", y = b[c] || "";
+          const order = numeric ? (sortKey(x) ?? -Infinity) - (sortKey(y) ?? -Infinity) : x.localeCompare(y, undefined, { numeric: true });
+          return tableState.descending ? -order : order;
+        });
+      }
+      [...headRow.children].forEach((th, i) => {
+        th.dataset.sort = i === tableState.sortColumn ? (tableState.descending ? "desc" : "asc") : "";
+      });
+      body.innerHTML = "";
+      const fragment = document.createDocumentFragment();
+      for (const row of rows) {
+        const tr = el("tr");
+        for (let i = 0; i < width; i++) {
+          const cell = row[i] || "";
+          const td = el("td", sortKey(cell) !== null ? "num" : "");
+          td.append(withMarks(cell, query));
+          tr.append(td);
+        }
+        fragment.append(tr);
+      }
+      body.append(fragment);
+      count.textContent = T.rows.replace("{count}", String(rows.length));
+    }
+
+    let timer = null;
+    search.addEventListener("input", () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        tableState.query = search.value;
+        draw();
+      }, 150);
+    });
+    if (current !== "table") tableState = { sortColumn: -1, descending: false, query: "" };
+    draw();
+  }
+
+  // ---------- SVG ----------
+  function renderImage(payload) {
+    root.innerHTML = "";
+    const frame = el("div", "image-preview");
+    const img = el("img");
+    // As <img>, scripts inside the SVG never run.
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(payload.svg || "");
+    img.alt = "";
+    frame.append(img);
+    root.append(frame);
+  }
+
   window.verso = {
     scrollToLine,
     update(payload) {
       const y = window.scrollY;
       if (payload.kind === "markdown") renderMarkdown(payload);
-      else if (payload.kind === "json") renderTree(payload);
+      else if (payload.kind === "tree") renderTree(payload);
+      else if (payload.kind === "table") renderTable(payload);
+      else if (payload.kind === "image") renderImage(payload);
       else {
         root.innerHTML = "";
         root.append(el("div", "empty", T.noPreview));

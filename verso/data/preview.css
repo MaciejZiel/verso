@@ -152,3 +152,30 @@ mark { background: var(--mark); color: inherit; border-radius: 3px; }
   background: color-mix(in srgb, var(--danger) 10%, transparent); font-family: ui-monospace, monospace;
 }
 .empty { margin: 40px; color: var(--muted); text-align: center; }
+
+/* ---------- CSV / TSV ---------- */
+.table-note { font-size: 12px; color: var(--muted); }
+/* The wrapper is the scroll area (both directions), so the header sticks to its top. */
+.table-wrap { height: calc(100vh - 49px); overflow: auto; padding: 0 12px; }
+table.data-table { border-collapse: collapse; font-size: 13.5px; min-width: 100%; }
+.data-table th, .data-table td { border: 1px solid var(--border); padding: 5px 10px; text-align: left; white-space: nowrap; }
+.data-table td.num { text-align: right; font-variant-numeric: tabular-nums; }
+.data-table thead th {
+  position: sticky; top: 0; z-index: 1; background: var(--bg); box-shadow: inset 0 -1px var(--border);
+  font-weight: 600; cursor: pointer; user-select: none;
+}
+.data-table thead th:hover { background: var(--hover); }
+.data-table thead th[data-sort="asc"]::after { content: " ▲"; font-size: .7em; color: var(--accent); }
+.data-table thead th[data-sort="desc"]::after { content: " ▼"; font-size: .7em; color: var(--accent); }
+.data-table tbody tr:nth-child(2n) td { background: var(--soft); }
+.data-table tbody tr:hover td { background: var(--hover); }
+
+/* ---------- SVG ---------- */
+.image-preview {
+  min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px;
+  background-color: var(--bg);
+  background-image: linear-gradient(45deg, var(--soft) 25%, transparent 25%, transparent 75%, var(--soft) 75%),
+    linear-gradient(45deg, var(--soft) 25%, transparent 25%, transparent 75%, var(--soft) 75%);
+  background-size: 24px 24px; background-position: 0 0, 12px 12px;
+}
+.image-preview img { max-width: 100%; max-height: calc(100vh - 48px); }

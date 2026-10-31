@@ -42,7 +42,7 @@ def test_format_json_keeps_polish():
 
 
 def test_preview_payload():
-    assert preview_payload("json", '{"a": 1}') == {"kind": "json", "tree": {"o": [["a", {"v": 1}]]}}
+    assert preview_payload("json", '{"a": 1}') == {"kind": "tree", "format": "json", "tree": {"o": [["a", {"v": 1}]]}}
     assert "error" in preview_payload("json", "[")
     assert preview_payload(None, "x") == {"kind": "none"}
     assert preview_payload("markdown", "# A")["toc"][0][2] == "A"
@@ -127,3 +127,53 @@ def test_markdown_autolink_and_strikethrough():
     html, _, features = render_markdown("~~stare~~ https://example.org")
     assert "<s>stare</s>" in html and '<a href="https://example.org">' in html
     assert features == {"math": False, "mermaid": False}
+
+
+def test_kinds_for_new_formats():
+    assert [kind_of(n) for n in ("a.yml", "b.toml", "c.xml", "d.csv", "e.tsv", "f.html", "g.svg", "h.txt")] == [
+        "yaml", "toml", "xml", "csv", "csv", "html", "svg", None]
+
+
+def test_yaml_tree_keeps_order_and_dates():
+    payload = preview_payload("yaml", "zeta: 1\nalfa:\n  - 2026-10-31\n  - true\n")
+    assert payload["kind"] == "tree" and payload["format"] == "yaml"
+    assert payload["tree"] == {"o": [["zeta", {"v": 1}], ["alfa", {"a": [{"v": "2026-10-31"}, {"v": True}]}]]}
+
+
+def test_yaml_error_has_position():
+    payload = preview_payload("yaml", "a: [1, 2\nb: 3\n")
+    assert payload["error"].startswith("Invalid YAML. Line ")
+
+
+def test_toml_tree():
+    payload = preview_payload("toml", 'title = "x"\n[owner]\nname = "M"\n')
+    assert payload["tree"] == {"o": [["title", {"v": "x"}], ["owner", {"o": [["name", {"v": "M"}]]}]]}
+    assert preview_payload("toml", "a = ")["error"].startswith("Invalid TOML.")
+
+
+def test_xml_tree_attributes_text_and_repeats():
+    payload = preview_payload("xml", '<root id="1"><item>a</item><item>b</item><note lang="pl">tak</note></root>')
+    root = payload["tree"]["o"][0]
+    assert root[0] == "root"
+    assert root[1]["o"] == [
+        ["@id", {"v": "1"}], ["item", {"v": "a"}], ["item", {"v": "b"}],
+        ["note", {"o": [["@lang", {"v": "pl"}], ["#text", {"v": "tak"}]]}],
+    ]
+    assert preview_payload("xml", "<a><b></a>")["error"].startswith("Invalid XML. Line 1")
+
+
+def test_csv_sniffs_semicolon_and_limits_rows(monkeypatch):
+    from verso import render
+
+    payload = preview_payload("csv", "imię;wiek\nAla;30\nOla;25\n", "ludzie.csv")
+    assert payload["header"] == ["imię", "wiek"] and payload["rows"] == [["Ala", "30"], ["Ola", "25"]]
+    assert payload["delimiter"] == "semicolon" and payload["total"] == 2
+    tsv = preview_payload("csv", "a\tb\n1\t2\n", "x.tsv")
+    assert tsv["header"] == ["a", "b"] and tsv["delimiter"] == "tab"
+    monkeypatch.setattr(render, "TABLE_ROW_LIMIT", 3)
+    big = preview_payload("csv", "n\n" + "\n".join(str(i) for i in range(10)), "n.csv")
+    assert len(big["rows"]) == 3 and big["total"] == 10
+
+
+def test_svg_payload():
+    assert preview_payload("svg", "<svg/>") == {"kind": "image", "svg": "<svg/>"}
