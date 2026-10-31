@@ -1,5 +1,6 @@
 """Jedna karta: edytor GtkSourceView, podgląd WebKit, pasek wyszukiwania i obsługa pliku."""
 
+import gettext
 import json
 from gettext import gettext as _
 from gettext import ngettext
@@ -78,6 +79,8 @@ class Document(Gtk.Box):
         self._preview_ready = False
         self._html_shown = False
         self._html_serial = 0
+        self._html_scroll = 0
+        self._async_features = False  # last Markdown preview had math or diagrams
         self._preview_timer = 0
         self._loading = False
         self._change_serial = 0  # grows with every buffer change; detects typing during a save
@@ -631,6 +634,8 @@ class Document(Gtk.Box):
             return
         self._preview_ready = True
         if self._html_shown:
+            if self._html_scroll:
+                self._run_js(f"window.scrollTo(0, {float(self._html_scroll)})")
             # An HTML file is shown as itself; reload only if it changed while this load ran.
             if self._change_serial != self._html_serial:
                 self._schedule_preview()
@@ -647,6 +652,21 @@ class Document(Gtk.Box):
 
     def _show_html(self, text):
         """HTML files are rendered as real pages, with JavaScript off (opening a file must not run code)."""
+        if self._html_shown and self._preview_ready:
+            # Remember the scroll position first, then reload and restore it in _on_load_changed.
+            self.webview.evaluate_javascript(
+                "window.scrollY", -1, None, None, None, lambda w, r, _u: self._reload_html(text, w, r), None
+            )
+            self._preview_ready = False
+            return
+        self._reload_html(text)
+
+    def _reload_html(self, text, webview=None, result=None):
+        if result is not None:
+            try:
+                self._html_scroll = webview.evaluate_javascript_finish(result).to_double()
+            except GLib.Error:
+                self._html_scroll = 0
         self._preview_ready = False
         self._html_shown = True
         self._html_serial = self._change_serial
@@ -685,6 +705,7 @@ class Document(Gtk.Box):
             return GLib.SOURCE_REMOVE
         name = self.file.get_basename() if self.file else ""
         payload = render.preview_payload(self.kind, text, name)
+        self._async_features = any((payload.get("features") or {}).values())
         self._run_js(f"window.verso.update({json.dumps(payload, ensure_ascii=False)})")
         return GLib.SOURCE_REMOVE
 
@@ -693,25 +714,34 @@ class Document(Gtk.Box):
     def print_document(self, export_file=None, on_done=None):
         """Prints (or, with export_file, writes a PDF). Files with a preview print the rendered preview."""
         window = self.get_root()
-        if self.kind and self._preview_ready:
-            self._push_preview(force=True)  # the preview may be stale while the editor alone is shown
-            GLib.timeout_add(200, lambda: self._print_preview(window, export_file, on_done) and False)
-        else:
+        if not (self.kind and self._preview_ready):
             self._print_source(window, export_file, on_done)
+            return
+        self._push_preview(force=True)  # the preview may be stale while the editor alone is shown
+        self._when_preview_settled(lambda: self._print_preview(window, export_file, on_done))
+
+    def _when_preview_settled(self, callback):
+        """Runs callback once the preview shows the current text: after an HTML reload has finished,
+        and with extra time when math or diagrams render asynchronously."""
+        if self._html_shown and not self._preview_ready:
+            handler = None
+
+            def finished(_webview, event):
+                if event == WebKit.LoadEvent.FINISHED:
+                    self.webview.disconnect(handler)
+                    GLib.timeout_add(100, lambda: callback() and False)
+
+            handler = self.webview.connect("load-changed", finished)
+            return
+        delay = 900 if self._async_features else 200
+        GLib.timeout_add(delay, lambda: callback() and False)
 
     @staticmethod
     def _file_printer_name():
-        """Name of GTK's "Print to File" printer (localized, and missing when no print backend is installed)."""
-        found = []
-
-        def check(printer):
-            if printer.is_virtual() and printer.accepts_pdf():
-                found.append(printer.get_name())
-                return True
-            return False
-
-        Gtk.enumerate_printers(check, True)
-        return found[0] if found else None
+        # GTK's file backend names its printer with the translated "Print to File"; asking for it by
+        # name avoids enumerating printers, which blocks until network printers have answered.
+        name = "Print to File"  # GTK's own string, translated with GTK's catalog (not ours)
+        return gettext.dgettext("gtk40", name)
 
     def _print_settings(self, export_file, printer=None):
         print_settings = Gtk.PrintSettings()
@@ -725,19 +755,30 @@ class Document(Gtk.Box):
 
     def _print_preview(self, window, export_file, on_done):
         operation = WebKit.PrintOperation.new(self.webview)
-        printer = self._file_printer_name() if export_file is not None else None
-        operation.set_print_settings(self._print_settings(export_file, printer))
-        if export_file is not None and printer:
-            if on_done is not None:
-                operation.connect("finished", lambda *_: on_done(True))
-                operation.connect("failed", lambda _op, error: on_done(False))
-            operation.print_()
-        else:
-            # Without a file printer WebKit cannot write a PDF on its own: the print dialog offers
-            # saving to a file instead (prefilled with the chosen name where the backend supports it).
-            if export_file is not None and on_done is not None:
-                on_done(None)
+        if export_file is None:
+            operation.set_print_settings(self._print_settings(None))
             operation.run_dialog(window)
+            return
+        operation.set_print_settings(self._print_settings(export_file, self._file_printer_name()))
+        state = {"failed": False}
+
+        def failed(_op, _error):
+            # No usable file printer: let the print dialog do it ("Print to File" is offered there).
+            state["failed"] = True
+            dialog_operation = WebKit.PrintOperation.new(self.webview)
+            dialog_operation.set_print_settings(self._print_settings(export_file))
+            if on_done is not None:
+                on_done(None)
+            dialog_operation.run_dialog(window)
+
+        def finished(_op):
+            # WebKit emits "finished" after "failed" too; report success only when nothing failed.
+            if not state["failed"] and on_done is not None:
+                on_done(export_file.query_exists(None))
+
+        operation.connect("failed", failed)
+        operation.connect("finished", finished)
+        operation.print_()
 
     def _print_source(self, window, export_file, on_done):
         compositor = GtkSource.PrintCompositor.new_from_view(self.view)
@@ -810,12 +851,14 @@ class Document(Gtk.Box):
     def _on_decide_policy(self, _webview, decision, decision_type):
         if decision_type not in (WebKit.PolicyDecisionType.NAVIGATION_ACTION, WebKit.PolicyDecisionType.NEW_WINDOW_ACTION):
             return False
-        uri = decision.get_navigation_action().get_request().get_uri()
-        if not self._preview_ready:
-            return False  # pierwsze wczytanie naszej strony
-        if uri.split("#", 1)[0] in (self._base_uri, "about:blank") and "#" in uri:
-            return False  # kotwica w tym samym dokumencie
+        action = decision.get_navigation_action()
+        uri = action.get_request().get_uri()
+        page = uri.split("#", 1)[0]
+        if page in (self._base_uri, "about:blank") and ("#" in uri or not self._preview_ready):
+            return False  # loading our page or the HTML file itself, or an anchor in it
         decision.ignore()
+        if not action.is_user_gesture():
+            return True  # iframes, redirects and meta refresh from a file are simply blocked
         target = Gio.File.new_for_uri(uri.split("#", 1)[0])
         if uri.startswith("file:") and render.kind_of(target.get_basename()):
             self.emit("open-file", target)

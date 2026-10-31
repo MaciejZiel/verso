@@ -94,12 +94,33 @@ def preview_strings():
     }
 
 
-def _plain(value):
-    """YAML/TOML values that JSON cannot carry (dates, sets, bytes…) become text."""
-    if isinstance(value, dict):
-        return {str(key): _plain(child) for key, child in value.items()}
-    if isinstance(value, (list, tuple)):
-        return [_plain(child) for child in value]
+PLAIN_NODE_LIMIT = 200_000
+
+
+class TooLarge(ValueError):
+    pass
+
+
+def _plain(value, _stack=None, _budget=None):
+    """YAML/TOML values that JSON cannot carry (dates, sets, bytes…) become text.
+
+    YAML aliases can point back at their parents (a: &x [*x]) or multiply into billions of nodes,
+    so cycles are cut and the total number of nodes is capped."""
+    stack = set() if _stack is None else _stack
+    budget = [PLAIN_NODE_LIMIT] if _budget is None else _budget
+    budget[0] -= 1
+    if budget[0] < 0:
+        raise TooLarge(_("The document is too large or has too many repeated aliases to preview."))
+    if isinstance(value, (dict, list, tuple)):
+        if id(value) in stack:
+            return "*recursive*"
+        stack.add(id(value))
+        try:
+            if isinstance(value, dict):
+                return {str(key): _plain(child, stack, budget) for key, child in value.items()}
+            return [_plain(child, stack, budget) for child in value]
+        finally:
+            stack.discard(id(value))
     if value is None or isinstance(value, (bool, int, float, str)):
         return value
     if hasattr(value, "isoformat"):
@@ -117,7 +138,10 @@ def parse_yaml(text):
         where = _("Line {line}, column {column}: ").format(line=mark.line + 1, column=mark.column + 1) if mark else ""
         return None, where + str(getattr(error, "problem", None) or error)
     data = documents[0] if len(documents) == 1 else documents
-    return _plain(data), None
+    try:
+        return _plain(data), None
+    except TooLarge as error:
+        return None, str(error)
 
 
 def parse_toml(text):
@@ -166,7 +190,10 @@ def table_payload(text, name=""):
             dialect = csv.Sniffer().sniff(sample, delimiters=",;\t|")
         except csv.Error:
             dialect = csv.excel
-    rows = list(csv.reader(io.StringIO(text), dialect))
+    try:
+        rows = list(csv.reader(io.StringIO(text), dialect))
+    except csv.Error as error:
+        return {"kind": "table", "header": [], "rows": [], "total": 0, "error": _("Could not read the table: {error}").format(error=error)}
     rows = [row for row in rows if row]
     if not rows:
         return {"kind": "table", "header": [], "rows": [], "total": 0}

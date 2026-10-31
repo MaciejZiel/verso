@@ -196,7 +196,7 @@ html.theme-document .markdown p { text-align: justify; hyphens: auto; }
 html.theme-document .markdown blockquote { font-style: italic; }
 
 /* Reader: large text in a calm, narrow column. */
-html.theme-reader { --content-width: 700px; }
+html.theme-reader.width-normal { --content-width: 700px; }  /* other widths stay as chosen */
 html.theme-reader body { font-size: 19px; line-height: 1.8; }
 html.theme-reader:not(.dark) { --bg: #fbf8f1; --soft: rgba(80, 60, 20, 0.05); --code-bg: rgba(80, 60, 20, 0.07); }
 html.theme-reader .markdown h1, html.theme-reader .markdown h2 { border-bottom: 0; }
@@ -204,7 +204,7 @@ html.theme-reader #toc { display: none; }
 
 /* ---------- Printing ---------- */
 @media print {
-  html, html.dark {
+  html, html.dark, html.theme-reader:not(.dark) {
     --bg: #ffffff; --fg: #000000; --muted: #555555; --border: #cccccc; --soft: #f5f5f5; --code-bg: #f3f3f3; --link: #1c4fa8;
   }
   #toc, #json-bar { display: none !important; }

@@ -177,3 +177,27 @@ def test_csv_sniffs_semicolon_and_limits_rows(monkeypatch):
 
 def test_svg_payload():
     assert preview_payload("svg", "<svg/>") == {"kind": "image", "svg": "<svg/>"}
+
+
+def test_yaml_recursive_alias_and_bomb():
+    from verso import render
+
+    payload = preview_payload("yaml", "a: &x [1, *x]\n")
+    assert payload["tree"]["o"][0][1]["a"][1] == {"v": "*recursive*"}
+    bomb = "a: &a [x, x, x, x, x, x, x, x, x, x]\n" + "".join(
+        f"{chr(98 + i)}: &{chr(98 + i)} [*{chr(97 + i)}, *{chr(97 + i)}, *{chr(97 + i)}, *{chr(97 + i)}, *{chr(97 + i)}, *{chr(97 + i)}, *{chr(97 + i)}, *{chr(97 + i)}, *{chr(97 + i)}, *{chr(97 + i)}]\n"
+        for i in range(8))
+    assert "too large" in preview_payload("yaml", bomb)["error"]
+    assert render.PLAIN_NODE_LIMIT >= 100_000
+
+
+def test_csv_reader_error_is_reported(monkeypatch):
+    import csv
+
+    monkeypatch.setattr(csv, "field_size_limit", csv.field_size_limit)
+    old = csv.field_size_limit(10)
+    try:
+        payload = preview_payload("csv", "a,b\n" + "x" * 50 + ",1\n", "big.csv")
+    finally:
+        csv.field_size_limit(old)
+    assert payload["kind"] == "table" and payload["error"].startswith("Could not read the table")

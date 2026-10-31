@@ -112,10 +112,13 @@ def steps(win):
         "dane.csv": "miasto;ludność\nKraków;800000\nŁódź;650000\nGdańsk;480000\n",
         "konf.yaml": "serwer:\n  port: 8080\n  hosty: [a, b]\n",
         "feed.xml": "<rss><channel><title>Wiadomości</title></channel></rss>",
-        "strona.html": "<h1 id='t'>Nagłówek</h1><script>document.getElementById('t').textContent='SKRYPT'</script>",
+        "strona.html": "<h1 id='t'>Nagłówek</h1><script>document.getElementById('t').textContent='SKRYPT'</script><iframe id='f' src='inna.html'></iframe>",
+        "rss.xml": "<rss><channel><item><t>A</t></item><item><t>B</t></item></channel></rss>",
+        "liczby.csv": "nazwa;kwota\na;1,500\nb;20\nc;300\n",
         "ikona.svg": "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><rect width='10' height='10'/></svg>",
     }
     opened = {}
+    Path(f"{S}/e2e/inna.html").write_text("<p>RAMKA</p>")
     for name, content in files.items():
         Path(f"{S}/e2e/{name}").write_text(content)
         opened[name] = win.open_file(Gio.File.new_for_path(f"{S}/e2e/{name}"))
@@ -128,7 +131,16 @@ def steps(win):
     js_value(opened["feed.xml"].webview, "document.querySelector('#json-tree').textContent", out, "xml")
     js_value(opened["strona.html"].webview, "document.getElementById('t').textContent", out, "html")
     js_value(opened["ikona.svg"].webview, "document.querySelector('.image-preview img') ? 'img' : ''", out, "svg")
+    js_value(opened["strona.html"].webview, "(() => { const d = document.getElementById('f').contentDocument; return d && d.body ? d.body.textContent : ''; })()", out, "iframe")
+    js_value(opened["rss.xml"].webview,
+             "(() => { const items = [...document.querySelectorAll('.jnode')].filter(n => n.querySelector(':scope > .jrow .jkey')?.textContent === '\"item\"');"
+             " items[0].querySelector('.jtoggle').click(); return items.map(n => n.classList.contains('jopen')).join(','); })()", out, "xml_items")
+    js_value(opened["liczby.csv"].webview,
+             "document.querySelector('.data-table th:nth-child(2)').click(); [...document.querySelectorAll('.data-table tbody td:nth-child(2)')].map(td => td.textContent).join(' ')", out, "numbers")
     yield 800
+    check("html iframe blocked", out.get("iframe") == "")
+    check("xml repeated tags open separately", out.get("xml_items") in ("false,true", "true,false"))
+    check("thousands separator sorts as number", out.get("numbers") == "20 300 1,500")
     check("csv table", out.get("rows") == "Rows: 3" and out.get("sorted") == "Gdańsk")
     check("yaml tree", out.get("yaml") == '"serwer","port","hosty",0,1')
     check("xml tree", "Wiadomości" in out.get("xml", ""))

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: verso\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-31 23:03+0100\n"
+"POT-Creation-Date: 2026-10-31 23:09+0100\n"
 "PO-Revision-Date: 2026-10-31 22:09+0100\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -266,7 +266,7 @@ msgstr "Poprzednia karta"
 msgid "Editing"
 msgstr "Edycja"
 
-#: verso/app.py:239 verso/document.py:175
+#: verso/app.py:239 verso/document.py:178
 msgid "Find"
 msgstr "Znajdź"
 
@@ -290,110 +290,110 @@ msgstr "Cofnij"
 msgid "Redo"
 msgstr "Ponów"
 
-#: verso/document.py:118
+#: verso/document.py:121
 msgid "The file has changed on disk."
 msgstr "Plik zmienił się na dysku."
 
-#: verso/document.py:118
+#: verso/document.py:121
 msgid "_Reload"
 msgstr "_Wczytaj ponownie"
 
-#: verso/document.py:184
+#: verso/document.py:187
 msgid "Previous Match (Shift+Enter)"
 msgstr "Poprzednie wystąpienie (Shift+Enter)"
 
-#: verso/document.py:186
+#: verso/document.py:189
 msgid "Next Match (Enter)"
 msgstr "Następne wystąpienie (Enter)"
 
-#: verso/document.py:192
+#: verso/document.py:195
 msgid "Replace (Ctrl+H)"
 msgstr "Zamień (Ctrl+H)"
 
-#: verso/document.py:193
+#: verso/document.py:196
 msgid "Match Case"
 msgstr "Uwzględniaj wielkość liter"
 
-#: verso/document.py:202
+#: verso/document.py:205
 msgid "Replace with"
 msgstr "Zamień na"
 
-#: verso/document.py:204
+#: verso/document.py:207
 msgid "Replace"
 msgstr "Zamień"
 
-#: verso/document.py:206
+#: verso/document.py:209
 msgid "Replace All"
 msgstr "Zamień wszystkie"
 
-#: verso/document.py:225
+#: verso/document.py:228
 #, python-brace-format
 msgid "New Document {number}"
 msgstr "Nowy dokument {number}"
 
-#: verso/document.py:225 verso/window.py:284
+#: verso/document.py:228 verso/window.py:284
 msgid "New Document"
 msgstr "Nowy dokument"
 
-#: verso/document.py:231
+#: verso/document.py:234
 msgid "Draft"
 msgstr "Szkic"
 
 #. Loaded, but some bytes did not fit the encoding and were replaced.
-#: verso/document.py:266
+#: verso/document.py:269
 msgid "Some characters could not be read correctly. Try reopening the file with another encoding."
 msgstr "Części znaków nie udało się poprawnie odczytać. Spróbuj otworzyć plik ponownie z innym kodowaniem."
 
-#: verso/document.py:274
+#: verso/document.py:277
 #, python-brace-format
 msgid "Could not open the file: {error}"
 msgstr "Nie udało się otworzyć pliku: {error}"
 
-#: verso/document.py:331
+#: verso/document.py:334
 msgid "Discard Changes and Reopen?"
 msgstr "Odrzucić zmiany i otworzyć ponownie?"
 
-#: verso/document.py:332
+#: verso/document.py:335
 #, python-brace-format
 msgid "Reopening “{title}” with another encoding replaces your unsaved changes with the file on disk."
 msgstr "Ponowne otwarcie „{title}” z innym kodowaniem zastąpi niezapisane zmiany zawartością pliku z dysku."
 
-#: verso/document.py:334 verso/window.py:389
+#: verso/document.py:337 verso/window.py:389
 msgid "_Cancel"
 msgstr "_Anuluj"
 
-#: verso/document.py:335
+#: verso/document.py:338
 msgid "_Discard and Reopen"
 msgstr "_Odrzuć i otwórz ponownie"
 
-#: verso/document.py:378
+#: verso/document.py:381
 #, python-brace-format
 msgid "Could not save the file: {error}"
 msgstr "Nie udało się zapisać pliku: {error}"
 
-#: verso/document.py:602
+#: verso/document.py:605
 msgid "Formatting is available only for JSON files."
 msgstr "Formatowanie działa tylko dla plików JSON."
 
-#: verso/document.py:608
+#: verso/document.py:611
 #, python-brace-format
 msgid "Invalid JSON. {error}"
 msgstr "Niepoprawny JSON. {error}"
 
-#: verso/document.py:747
+#: verso/document.py:788
 msgid "Page %N of %Q"
 msgstr "Strona %N z %Q"
 
-#: verso/document.py:918
+#: verso/document.py:961
 #, python-brace-format
 msgid "{position} of {total}"
 msgstr "{position} z {total}"
 
-#: verso/document.py:918
+#: verso/document.py:961
 msgid "No matches"
 msgstr "Brak wyników"
 
-#: verso/document.py:931
+#: verso/document.py:974
 #, python-brace-format
 msgid "Replaced {count} match"
 msgid_plural "Replaced {count} matches"
@@ -401,12 +401,12 @@ msgstr[0] "Zamieniono {count} wystąpienie"
 msgstr[1] "Zamieniono {count} wystąpienia"
 msgstr[2] "Zamieniono {count} wystąpień"
 
-#: verso/document.py:967
+#: verso/document.py:1010
 #, python-brace-format
 msgid "Could not keep a backup of unsaved changes: {error}"
 msgstr "Nie udało się zachować kopii niezapisanych zmian: {error}"
 
-#: verso/render.py:57 verso/render.py:140
+#: verso/render.py:57 verso/render.py:164
 #, python-brace-format
 msgid "Line {line}, column {column}: {message}"
 msgstr "Linia {line}, kolumna {column}: {message}"
@@ -461,12 +461,21 @@ msgstr "Wyświetlono pierwsze {shown} z {total} wierszy"
 msgid "The file has no rows."
 msgstr "Plik nie zawiera wierszy."
 
-#: verso/render.py:117
+#: verso/render.py:113
+msgid "The document is too large or has too many repeated aliases to preview."
+msgstr "Dokument jest za duży albo ma zbyt wiele powtórzonych aliasów, by go wyświetlić."
+
+#: verso/render.py:138
 #, python-brace-format
 msgid "Line {line}, column {column}: "
 msgstr "Linia {line}, kolumna {column}: "
 
 #: verso/render.py:196
+#, python-brace-format
+msgid "Could not read the table: {error}"
+msgstr "Nie udało się odczytać tabeli: {error}"
+
+#: verso/render.py:223
 #, python-brace-format
 msgid "Invalid {format}. {error}"
 msgstr "Niepoprawny {format}. {error}"

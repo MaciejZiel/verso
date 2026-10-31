@@ -188,10 +188,10 @@
     const kind = kindOf(node);
     if (kind !== "object" && kind !== "array") return matches(scalarText(node), query);
     let found = false;
-    for (const [key, child] of childrenOf(node)) {
+    childrenOf(node).forEach(([key, child], i) => {
       const keyHit = kind === "object" && matches(key, query);
-      if (collectHits(child, path + "/" + key, query, hits) || keyHit) found = true;
-    }
+      if (collectHits(child, path + "/" + i, query, hits) || keyHit) found = true;
+    });
     if (found) hits.add(path);
     return found;
   }
@@ -264,7 +264,8 @@
       if (built) return;
       built = true;
       entries.forEach(([childKey, child], i) => {
-        kids.append(buildNode(childKey, child, path + "/" + childKey, i === entries.length - 1, query, counter));
+        // Paths use positions, not keys: XML repeats tags (<item>…<item>), and each must open on its own.
+        kids.append(buildNode(childKey, child, path + "/" + i, i === entries.length - 1, query, counter));
       });
     }
     function setOpen(state) {
@@ -370,16 +371,16 @@
     // keep opening until something with more than one child shows up.
     if (current !== payload.kind) {
       jsonState.open = new Set(["$"]);
-      for (const [key] of childrenOf(payload.tree)) jsonState.open.add("$/" + key);
+      childrenOf(payload.tree).forEach((_entry, i) => jsonState.open.add("$/" + i));
       let node = payload.tree;
       let path = "$";
       for (let depth = 0; depth < 12; depth++) {
-        const containers = childrenOf(node).filter(([, child]) => child.o || child.a);
-        if (childrenOf(node).length !== 1 || containers.length !== 1) break;
-        const [key, child] = containers[0];
-        path += "/" + key;
+        const children = childrenOf(node);
+        if (children.length !== 1 || !(children[0][1].o || children[0][1].a)) break;
+        const child = children[0][1];
+        path += "/0";
         jsonState.open.add(path);
-        for (const [grandKey] of childrenOf(child)) jsonState.open.add(path + "/" + grandKey);
+        childrenOf(child).forEach((_entry, i) => jsonState.open.add(path + "/" + i));
         node = child;
       }
     }
@@ -457,13 +458,21 @@
   // ---------- CSV / TSV table ----------
   let tableState = { sortColumn: -1, descending: false, query: "" };
 
+  // Numbers as people write them: 1500, 1 500, 1,500.25 (thousands), 12,5 (decimal comma), -3.2e4.
   function sortKey(value) {
-    const number = Number(String(value).replace(/\s/g, "").replace(",", "."));
-    return value !== "" && Number.isFinite(number) ? number : null;
+    const text = String(value).replace(/[\s\u00a0\u202f]/g, "");
+    if (/^[+-]?\d{1,3}(,\d{3})+(\.\d+)?$/.test(text)) return Number(text.replace(/,/g, ""));
+    if (/^[+-]?\d+,\d+$/.test(text)) return Number(text.replace(",", "."));
+    if (/^[+-]?(\d+\.?\d*|\.\d+)(e[+-]?\d+)?$/i.test(text)) return Number(text);
+    return null;
   }
 
   function renderTable(payload) {
     root.innerHTML = "";
+    if (payload.error) {
+      root.append(el("div", "error", payload.error));
+      return;
+    }
     if (!payload.header.length) {
       root.append(el("div", "empty", T.emptyTable));
       return;
