@@ -121,6 +121,10 @@ def steps(win):
     scratch.buffer.insert_at_cursor("don")
     scratch._on_editor_key(None, Gdk.KEY_apostrophe, 0, 0)
     check("apostrophe inside word stays single", scratch.buffer.get_property("text") == "don")
+    scratch.buffer.set_text("hello")
+    scratch.buffer.select_range(scratch.buffer.get_start_iter(), scratch.buffer.get_end_iter())
+    scratch._on_editor_key(None, Gdk.KEY_quotedbl, 0, 0)
+    check("quote wraps selection", scratch.buffer.get_property("text") == '"hello"')
     # ustawienia działają od razu
     _settings.get().set_boolean("show-map", True)
     _settings.get().set_uint("tab-width", 2)
@@ -139,10 +143,32 @@ def steps(win):
     check("search keeps selection with map shown", scratch.buffer.get_has_selection())
     scratch.hide_search()
     scratch.buffer.set_modified(False)
+    # surowy JSON zachowuje kolejność kluczy z pliku
+    js.buffer.set_text('{"z": 1, "10": [true], "a": {}}')
+    js.set_mode("preview")
+    yield 600
+    raw = {}
+    js.webview.evaluate_javascript(
+        "[...document.querySelectorAll('#json-bar button')].pop().click(); document.getElementById('json-raw').textContent",
+        -1, None, None, None, lambda w, r, _u: raw.setdefault("text", w.evaluate_javascript_finish(r).to_string()), None)
+    yield 400
+    check("raw json keeps order", raw.get("text") == '{\n  "z": 1,\n  "10": [\n    true\n  ],\n  "a": {}\n}')
+    # zamknięcie okna z niezapisanym dokumentem: po „Odrzuć” sesja i tak się zapisuje
     win.tab_view.set_selected_page(win.tab_view.get_page(js))
-    win._save_state()
+    app.hold()
+    win.close()
+    yield 400
+    dialog = win.get_visible_dialog()
+    check("close asks about unsaved", dialog is not None)
+    while dialog is not None:
+        dialog.emit("response", "discard")
+        dialog.force_close()
+        yield 300
+        dialog = win.get_visible_dialog()
+    yield 300
     uris = _settings.get().get_strv("session-uris")
-    check("session saved", len(uris) == 2 and uris[1].endswith("data.json") and _settings.get().get_int("session-selected") == 1)
+    check("session saved after discard", len(uris) == 2 and uris[1].endswith("data.json") and _settings.get().get_int("session-selected") == 1)
+    app.release()
     app.quit()
 
 def on_activate(app):

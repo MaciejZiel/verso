@@ -5,7 +5,7 @@ GenericName=Text Editor
 Comment=Edit and preview Markdown, JSON and other text files
 # Translators: search terms for finding this application; keep the semicolons.
 Keywords=text;editor;markdown;json;preview;csv;yaml;notes;
-Exec=verso %U
+Exec=@BINDIR@/verso %U
 Icon=io.github.maciejziel.Verso
 Terminal=false
 StartupNotify=true
@@ -16,4 +16,4 @@ Actions=new-window;
 
 [Desktop Action new-window]
 Name=New Window
-Exec=verso --new-window
+Exec=@BINDIR@/verso --new-window

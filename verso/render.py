@@ -131,6 +131,8 @@ def preview_strings():
         "expandAll": _("Expand All"),
         "collapseAll": _("Collapse All"),
         "raw": _("Raw"),
+        # Translators: count of search results in the JSON preview, e.g. "Matches: 3".
+        "matches": _("Matches: {count}"),
         "invalidJson": _("Invalid JSON."),
         "noPreview": _("No preview for this file type."),
     }
@@ -145,8 +147,7 @@ def preview_payload(kind, text):
         data, error = parse_json(text)
         if error:
             return {"kind": "json", "error": error}
-        raw = json.dumps(data, ensure_ascii=False, indent=2)
-        return {"kind": "json", "tree": to_tree(data), "raw": raw}
+        return {"kind": "json", "tree": to_tree(data)}
     return {"kind": "none"}
 
 

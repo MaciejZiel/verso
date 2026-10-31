@@ -42,7 +42,7 @@ def test_format_json_keeps_polish():
 
 
 def test_preview_payload():
-    assert preview_payload("json", '{"a": 1}') == {"kind": "json", "tree": {"o": [["a", {"v": 1}]]}, "raw": '{\n  "a": 1\n}'}
+    assert preview_payload("json", '{"a": 1}') == {"kind": "json", "tree": {"o": [["a", {"v": 1}]]}}
     assert "error" in preview_payload("json", "[")
     assert preview_payload(None, "x") == {"kind": "none"}
     assert preview_payload("markdown", "# A")["toc"][0][2] == "A"

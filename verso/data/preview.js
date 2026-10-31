@@ -10,6 +10,7 @@
       expandAll: "Expand All",
       collapseAll: "Collapse All",
       raw: "Raw",
+      matches: "Matches: {count}",
       invalidJson: "Invalid JSON.",
       noPreview: "No preview for this file type.",
     },
@@ -131,6 +132,20 @@
     return found;
   }
 
+  // Pretty-printed JSON in file order (JSON.stringify would reorder numeric-looking keys).
+  function treeToText(node, indent) {
+    const inner = indent + "  ";
+    if (node.o) {
+      if (!node.o.length) return "{}";
+      return "{\n" + node.o.map(([k, v]) => inner + JSON.stringify(k) + ": " + treeToText(v, inner)).join(",\n") + "\n" + indent + "}";
+    }
+    if (node.a) {
+      if (!node.a.length) return "[]";
+      return "[\n" + node.a.map((v) => inner + treeToText(v, inner)).join(",\n") + "\n" + indent + "]";
+    }
+    return JSON.stringify(node.v);
+  }
+
   function scalar(node, query) {
     const kind = kindOf(node);
     const text = kind === "string" ? JSON.stringify(node.v) : String(node.v);
@@ -248,7 +263,7 @@
       if (jsonState.raw) {
         const pre = el("pre");
         pre.id = "json-raw";
-        pre.append(withMarks(payload.raw || "", query));
+        pre.append(withMarks(treeToText(payload.tree, ""), query));
         body.append(pre);
         count.textContent = "";
         return;
@@ -263,7 +278,7 @@
       const counter = { n: 0 };
       tree.append(buildNode(null, payload.tree, "$", true, query, counter));
       body.append(tree);
-      count.textContent = query ? String(counter.n) : "";
+      count.textContent = query ? T.matches.replace("{count}", String(counter.n)) : "";
       const first = tree.querySelector("mark");
       if (first && query) first.scrollIntoView({ block: "center" });
     }

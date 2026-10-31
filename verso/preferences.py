@@ -5,8 +5,7 @@ from gettext import gettext as _
 from gi.repository import Adw, Gio, GObject, Gtk, GtkSource, Pango
 
 from . import settings
-
-MODES = ("edit", "split", "preview")
+from .settings import MODES
 
 
 def resolve_scheme(scheme_id, dark):
@@ -67,9 +66,11 @@ class PreferencesDialog(Adw.PreferencesDialog):
             max_children_per_line=4,
         )
         schemes.add(self.scheme_box)
+        # Global objects outlive the dialog: disconnect when it closes, or closed dialogs stay alive.
         style = Adw.StyleManager.get_default()
-        style.connect("notify::dark", lambda *_: self._fill_schemes())
-        self.prefs.connect("changed::style-scheme", lambda *_: self._mark_scheme())
+        dark_handler = style.connect("notify::dark", lambda *_: self._fill_schemes())
+        scheme_handler = self.prefs.connect("changed::style-scheme", lambda *_: self._mark_scheme())
+        self.connect("closed", lambda *_: (style.disconnect(dark_handler), self.prefs.disconnect(scheme_handler)))
         self._fill_schemes()
         page.add(schemes)
 

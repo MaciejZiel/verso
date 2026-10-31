@@ -142,8 +142,10 @@ class Window(Adw.ApplicationWindow):
         self.spell_action = add("spellcheck", self._on_spellcheck, state=settings.get().get_boolean("spellcheck"))
         self.wrap_action = add("wrap", self._on_wrap, state=settings.get().get_boolean("wrap-lines"))
         # Keep the menu checkmarks in sync when the Preferences dialog changes the same settings.
-        settings.get().connect("changed::wrap-lines", lambda s, k: self.wrap_action.set_state(GLib.Variant.new_boolean(s.get_boolean(k))))
-        settings.get().connect("changed::spellcheck", lambda s, k: self.spell_action.set_state(GLib.Variant.new_boolean(s.get_boolean(k))))
+        self._settings_handlers = [
+            settings.get().connect("changed::wrap-lines", lambda s, k: self.wrap_action.set_state(GLib.Variant.new_boolean(s.get_boolean(k)))),
+            settings.get().connect("changed::spellcheck", lambda s, k: self.spell_action.set_state(GLib.Variant.new_boolean(s.get_boolean(k)))),
+        ]
 
     def _wrap_tabs(self, forward):
         n = self.tab_view.get_n_pages()
@@ -151,10 +153,9 @@ class Window(Adw.ApplicationWindow):
             self.tab_view.set_selected_page(self.tab_view.get_nth_page(0 if forward else n - 1))
 
     def _on_spellcheck(self, action, value):
+        # Global setting: every document applies it (JSON stays without spell checking).
         action.set_state(value)
         settings.get().set_boolean("spellcheck", value.get_boolean())
-        if self.current:
-            self.current.spelling.set_enabled(value.get_boolean())
 
     def _on_wrap(self, action, value):
         action.set_state(value)
@@ -289,10 +290,7 @@ class Window(Adw.ApplicationWindow):
             return False
         pending = [d for d in self.documents if d.modified]
         if not pending:
-            self._closing = True
-            self._save_state()
-            for doc in self.documents:
-                doc.shutdown()
+            self._finish_close()
             return False
 
         def step(ok):
@@ -303,11 +301,21 @@ class Window(Adw.ApplicationWindow):
                 self.tab_view.set_selected_page(self.tab_view.get_page(doc))
                 self._confirm_save(doc, step)
             else:
-                self._closing = True
+                self._finish_close()
                 self.close()
 
         step(True)
         return True
+
+    def _finish_close(self):
+        """Everything that must happen exactly once before the window goes away."""
+        self._closing = True
+        self._save_state()
+        for handler in self._settings_handlers:
+            settings.get().disconnect(handler)
+        self._settings_handlers = []
+        for doc in self.documents:
+            doc.shutdown()
 
     def _save_state(self):
         prefs = settings.get()
@@ -350,7 +358,6 @@ class Window(Adw.ApplicationWindow):
         doc = self.current
         if doc is None:
             return
-        self.spell_action.set_state(GLib.Variant.new_boolean(doc.spelling.get_enabled()))
         self._on_doc_state(doc)
 
     def _on_doc_state(self, doc):

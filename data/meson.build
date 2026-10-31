@@ -1,5 +1,13 @@
+desktop_conf = configuration_data()
+desktop_conf.set('BINDIR', get_option('prefix') / get_option('bindir'))
+desktop_in = configure_file(
+  input: app_id + '.desktop.in.in',
+  output: app_id + '.desktop.in',
+  configuration: desktop_conf,
+)
+
 desktop_file = i18n.merge_file(
-  input: app_id + '.desktop.in',
+  input: desktop_in,
   output: app_id + '.desktop',
   type: 'desktop',
   po_dir: '../po',

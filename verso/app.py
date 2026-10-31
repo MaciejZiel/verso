@@ -104,13 +104,18 @@ class Application(Adw.Application):
         if not prefs.get_boolean("restore-session"):
             return
         uris = prefs.get_strv("session-uris")
-        files = [Gio.File.new_for_uri(uri) for uri in uris]
-        files = [f for f in files if f.query_exists(None)]
-        for file in files:
-            window.open_file(file)
-        if files:
-            index = min(max(prefs.get_int("session-selected"), 0), window.tab_view.get_n_pages() - 1)
-            window.tab_view.set_selected_page(window.tab_view.get_nth_page(index))
+        index = prefs.get_int("session-selected")
+        # Remember which file was selected before missing files are dropped, so the index cannot shift.
+        selected_uri = uris[index] if 0 <= index < len(uris) else None
+        selected_doc = None
+        for uri in uris:
+            file = Gio.File.new_for_uri(uri)
+            if file.query_exists(None):
+                doc = window.open_file(file)
+                if uri == selected_uri:
+                    selected_doc = doc
+        if selected_doc is not None:
+            window.tab_view.set_selected_page(window.tab_view.get_page(selected_doc))
 
     def save_session(self, window):
         """Called by the last window that closes: remembers its documents for the next start."""
@@ -149,8 +154,7 @@ class Application(Adw.Application):
             return desc.get_family() or "Monospace", (desc.get_size() / Pango.SCALE) or 11
         # Gio.Settings.new przy braku schematu przerywa proces, więc najpierw sprawdzamy, czy schemat jest.
         name = "Monospace 11"
-        source = Gio.SettingsSchemaSource.get_default()
-        if source is not None and source.lookup("org.gnome.desktop.interface", True) is not None:
+        if settings.schema_exists("org.gnome.desktop.interface"):
             name = Gio.Settings.new("org.gnome.desktop.interface").get_string("monospace-font-name")
         desc = Pango.FontDescription.from_string(name or "Monospace 11")
         size = desc.get_size() / Pango.SCALE or 11

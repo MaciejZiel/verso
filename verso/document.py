@@ -16,7 +16,6 @@ from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk, GtkSource, Spelling
 from . import render, settings  # noqa: E402
 from .preferences import resolve_scheme  # noqa: E402
 
-MODES = ("edit", "split", "preview")
 PREVIEW_DELAY_MS = 250
 
 
@@ -406,7 +405,7 @@ class Document(Gtk.Box):
         if char not in self.PAIRS:
             return False
         closing = self.PAIRS[char]
-        if char in "\"'`":
+        if char in "\"'`" and not buffer.get_has_selection():
             # Quotes only pair at word boundaries, so apostrophes inside words stay single.
             previous = insert.copy()
             if previous.backward_char() and (previous.get_char().isalnum() or previous.get_char() == char):
