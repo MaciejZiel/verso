@@ -10,23 +10,23 @@ def test_kind_of():
 
 
 def test_markdown_table_and_toc():
-    html, toc = render_markdown("# Tytuł\n\n## Sekcja\n\n| a | b |\n| - | - |\n| 1 | 2 |\n")
-    assert "<table>" in html
+    html, toc, _features = render_markdown("# Tytuł\n\n## Sekcja\n\n| a | b |\n| - | - |\n| 1 | 2 |\n")
+    assert "<table data-line=" in html
     assert "<td>1</td>" in html
     assert [(level, name) for level, _, name in toc] == [(1, "Tytuł"), (2, "Sekcja")]
     assert all(anchor for _, anchor, _ in toc)
 
 
 def test_markdown_task_list():
-    html, _ = render_markdown("- [ ] do zrobienia\n- [x] zrobione\n- zwykły\n")
+    html, _, _ = render_markdown("- [ ] do zrobienia\n- [x] zrobione\n- zwykły\n")
     assert html.count('type="checkbox"') == 2
-    assert html.count("<input checked") == 1
+    assert html.count("disabled checked>") == 1
     assert "task-list-item" in html
     assert "[ ]" not in html
 
 
 def test_markdown_code_highlight():
-    html, _ = render_markdown("```python\nx = 1\n```\n")
+    html, _, _ = render_markdown("```python\nx = 1\n```\n")
     assert 'class="highlight"' in html
 
 
@@ -58,7 +58,7 @@ def test_build_page_has_nonce_csp():
 
 
 def test_toc_names_are_plain_text():
-    _, toc = render_markdown("# A &amp; B\n\n# x < y\n")
+    _, toc, _ = render_markdown("# A &amp; B\n\n# x < y\n")
     assert [name for _, _, name in toc] == ["A & B", "x < y"]
 
 
@@ -108,3 +108,22 @@ def test_count_words():
     assert count_words("Zażółć gęślą jaźń") == 3
     assert count_words("don't stop — well-known  42") == 4
     assert count_words("") == 0
+
+
+def test_markdown_lines_math_mermaid_front_matter():
+    text = "---\ntitle: T\n---\n# H\n\nCena 5$ i 6$, wzór $a_1 * b_2$.\n\n$$\nx^2\n$$\n\n```mermaid\ngraph TD; A-->B\n```\n"
+    html, toc, features = render_markdown(text)
+    assert '<h1 data-line="3" id="h">' in html
+    assert '<table class="front-matter"' in html
+    assert '<span class="math math-inline">a_1 * b_2</span>' in html
+    assert "5$ i 6$" in html  # currency is not math
+    assert '<div class="math math-display" data-line="7">x^2</div>' in html
+    assert '<pre class="mermaid">' in html
+    assert features == {"math": True, "mermaid": True}
+    assert toc == [(1, "h", "H")]
+
+
+def test_markdown_autolink_and_strikethrough():
+    html, _, features = render_markdown("~~stare~~ https://example.org")
+    assert "<s>stare</s>" in html and '<a href="https://example.org">' in html
+    assert features == {"math": False, "mermaid": False}

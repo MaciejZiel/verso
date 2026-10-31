@@ -31,3 +31,8 @@ install_data(
   'data/preview.js',
   install_dir: moduledir / 'data',
 )
+
+install_subdir(
+  'data/vendor',
+  install_dir: moduledir / 'data',
+)

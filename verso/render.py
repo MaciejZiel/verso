@@ -3,23 +3,19 @@
 import html as html_lib
 from gettext import gettext as _
 import json
-import re
 import secrets
-import xml.etree.ElementTree as etree
 from functools import cache
 from pathlib import Path
 
-import markdown
-from markdown.extensions import Extension
-from markdown.treeprocessors import Treeprocessor
 from pygments.formatters import HtmlFormatter
+
+from . import md
 
 DATA_DIR = Path(__file__).parent / "data"
 
 MARKDOWN_SUFFIXES = {".md", ".markdown", ".mdown", ".mkd"}
 JSON_SUFFIXES = {".json", ".geojson", ".webmanifest"}  # bez .jsonc: komentarzy json.loads nie przyjmie
 
-_TASK = re.compile(r"^\[([ xX])\]\s+")
 
 
 def shorten_home(path, home=None):
@@ -40,62 +36,9 @@ def kind_of(name):
     return None
 
 
-class _TaskListProcessor(Treeprocessor):
-    """`- [ ] zadanie` i `- [x] zadanie` jako pola wyboru, jak na GitHubie."""
-
-    def run(self, root):
-        for li in root.iter("li"):
-            target = li
-            # Lista „luźna” trzyma tekst w <p> wewnątrz <li>.
-            if not (li.text or "").strip() and len(li) and li[0].tag == "p":
-                target = li[0]
-            text = target.text or ""
-            match = _TASK.match(text)
-            if not match:
-                continue
-            box = etree.Element("input", {"type": "checkbox", "disabled": "disabled"})
-            if match.group(1).lower() == "x":
-                box.set("checked", "checked")
-            box.tail = " " + text[match.end() :]
-            target.text = ""
-            target.insert(0, box)
-            li.set("class", "task-list-item")
-
-
-class TaskListExtension(Extension):
-    def extendMarkdown(self, md):
-        md.treeprocessors.register(_TaskListProcessor(md), "tasklist", 5)
-
-
 def render_markdown(text):
-    """Zwraca (html, toc), gdzie toc to lista (poziom, id, tytuł) nagłówków."""
-    md = markdown.Markdown(
-        extensions=[
-            "tables",
-            "fenced_code",
-            "codehilite",
-            "toc",
-            "sane_lists",
-            "nl2br",
-            TaskListExtension(),
-        ],
-        extension_configs={
-            "codehilite": {"guess_lang": False, "css_class": "highlight"},
-            "toc": {"permalink": False},
-        },
-        output_format="html",
-    )
-    html = md.convert(text)
-    toc = []
-
-    def walk(tokens):
-        for token in tokens:
-            # „name” jest już zakodowane w HTML, a spis treści wstawia zwykły tekst.
-            toc.append((token["level"], token["id"], html_lib.unescape(token["name"])))
-            walk(token["children"])
-
-    walk(getattr(md, "toc_tokens", []))  # atrybut dodaje rozszerzenie toc
-    return html, toc
+    """Returns (html, toc, features); see md.render."""
+    return md.render(text)
 
 
 def parse_json(text):
@@ -141,8 +84,8 @@ def preview_strings():
 def preview_payload(kind, text):
     """Słownik wysyłany do strony podglądu (preview.js)."""
     if kind == "markdown":
-        html, toc = render_markdown(text)
-        return {"kind": "markdown", "html": html, "toc": toc}
+        html, toc, features = render_markdown(text)
+        return {"kind": "markdown", "html": html, "toc": toc, "features": features}
     if kind == "json":
         data, error = parse_json(text)
         if error:
@@ -166,13 +109,16 @@ def build_page():
     # "</" would end the <script> element early.
     strings = json.dumps(preview_strings(), ensure_ascii=False).replace("</", "<\\/")
     # Skrypty z treści pliku (surowy HTML w Markdownie) nie wykonają się: CSP wpuszcza tylko nasz nonce.
+    # Vendored KaTeX/Mermaid are loaded on demand from file: URIs; content inserted with innerHTML
+    # never runs scripts, so allowing file: scripts only lets our own loader in.
     csp = (
         "default-src 'none'; img-src file: data: https: http:; media-src file: data: https:; "
-        f"style-src 'unsafe-inline'; font-src file: data:; script-src 'nonce-{nonce}'"
+        f"style-src 'unsafe-inline' file:; font-src file: data:; script-src 'nonce-{nonce}' file:"
     )
+    vendor = json.dumps((DATA_DIR / "vendor").as_uri() + "/")
     return (
         "<!doctype html><html><head><meta charset='utf-8'>"
         f'<meta http-equiv="Content-Security-Policy" content="{csp}">'
         f"<style>{css}\n{_pygments_css()}</style></head>"
-        f"<body><div id='root'></div><script nonce='{nonce}'>window.VERSO_I18N = {strings};\n{js}</script></body></html>"
+        f"<body><div id='root'></div><script nonce='{nonce}'>window.VERSO_I18N = {strings};\nwindow.VERSO_VENDOR = {vendor};\n{js}</script></body></html>"
     )

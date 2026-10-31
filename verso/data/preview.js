@@ -17,6 +17,7 @@
     window.VERSO_I18N || {},
   );
   const root = document.getElementById("root");
+  let lastMarkdown = null;
   let current = null;
   let jsonState = { open: new Set(["$"]), raw: false, query: "" };
 
@@ -25,6 +26,61 @@
     if (cls) node.className = cls;
     if (text !== undefined) node.textContent = text;
     return node;
+  }
+
+  // ---------- vendored libraries (loaded once, on demand) ----------
+  const loaded = {};
+  function loadScript(path) {
+    if (!loaded[path]) {
+      loaded[path] = new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = window.VERSO_VENDOR + path;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.append(script);
+      });
+    }
+    return loaded[path];
+  }
+  function loadStyle(path) {
+    if (!loaded[path]) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = window.VERSO_VENDOR + path;
+      document.head.append(link);
+      loaded[path] = true;
+    }
+  }
+
+  function renderMath(container) {
+    const nodes = container.querySelectorAll(".math");
+    if (!nodes.length) return;
+    loadStyle("katex/katex.min.css");
+    loadScript("katex/katex.min.js").then(() => {
+      nodes.forEach((node) => {
+        const tex = node.textContent;
+        try {
+          window.katex.render(tex, node, { displayMode: node.classList.contains("math-display"), throwOnError: false });
+        } catch (error) {
+          node.classList.add("math-error");
+          node.title = String(error);
+        }
+      });
+    });
+  }
+
+  let mermaidTheme = null;
+  function renderMermaid(container) {
+    const nodes = container.querySelectorAll("pre.mermaid");
+    if (!nodes.length) return;
+    loadScript("mermaid/mermaid.min.js").then(() => {
+      const theme = document.documentElement.classList.contains("dark") ? "dark" : "default";
+      if (theme !== mermaidTheme) {
+        window.mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme });
+        mermaidTheme = theme;
+      }
+      window.mermaid.run({ nodes, suppressErrors: true });
+    });
   }
 
   // ---------- Markdown ----------
@@ -41,7 +97,12 @@
       layout.append(content, toc);
       root.append(layout);
     }
-    document.getElementById("content").innerHTML = payload.html || "";
+    const content = document.getElementById("content");
+    content.innerHTML = payload.html || "";
+    const features = payload.features || {};
+    if (features.math) renderMath(content);
+    if (features.mermaid) renderMermaid(content);
+    lastMarkdown = payload;
     const toc = document.getElementById("toc");
     toc.innerHTML = "";
     const entries = payload.toc || [];
@@ -320,7 +381,10 @@
       current = payload.kind;
     },
     setDark(dark) {
+      const changed = document.documentElement.classList.contains("dark") !== !!dark;
       document.documentElement.classList.toggle("dark", !!dark);
+      // Mermaid bakes colors into the SVG: redraw diagrams in the new theme.
+      if (changed && current === "markdown" && lastMarkdown && (lastMarkdown.features || {}).mermaid) renderMarkdown(lastMarkdown);
     },
   };
 })();

@@ -90,6 +90,18 @@ body {
 .markdown th, .markdown td { border: 1px solid var(--border); padding: 6px 12px; text-align: left; vertical-align: top; }
 .markdown th { font-weight: 600; background: var(--soft); }
 .markdown tr:nth-child(2n) td { background: var(--soft); }
+.markdown .highlight[data-lang] { position: relative; }
+.markdown .highlight[data-lang]::after {
+  content: attr(data-lang); position: absolute; top: 6px; right: 10px; font-size: 11px; color: var(--muted);
+  font-family: ui-monospace, monospace; text-transform: lowercase;
+}
+.markdown .math-display { display: block; overflow-x: auto; margin: 0 0 1em; text-align: center; }
+.markdown .math-error { color: var(--danger); font-family: ui-monospace, monospace; }
+.markdown .mermaid-diagram { margin: 0 0 1em; overflow-x: auto; text-align: center; }
+.markdown pre.mermaid { background: transparent; padding: 0; }
+.markdown table.front-matter { font-size: .85em; color: var(--muted); margin-bottom: 1.6em; }
+.markdown table.front-matter th { background: transparent; }
+.markdown pre.front-matter { font-size: .85em; color: var(--muted); }
 
 /* ---------- JSON ---------- */
 #json-bar {
