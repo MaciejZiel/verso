@@ -578,6 +578,11 @@
       if (current === payload.kind) window.scrollTo(0, y);
       current = payload.kind;
     },
+    setOptions(options) {
+      const html = document.documentElement;
+      html.classList.remove("theme-github", "theme-document", "theme-reader", "width-narrow", "width-normal", "width-wide", "width-full");
+      html.classList.add("theme-" + (options.theme || "github"), "width-" + (options.width || "normal"));
+    },
     setDark(dark) {
       const changed = document.documentElement.classList.contains("dark") !== !!dark;
       document.documentElement.classList.toggle("dark", !!dark);

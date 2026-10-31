@@ -28,11 +28,11 @@ Status legend: [ ] todo, [~] in progress, [x] done.
 - [x] Move Markdown rendering to markdown-it-py so every block carries its source line
 - [x] Synchronized scrolling between editor and preview in split mode
 - [~] Markdown extras: front matter, KaTeX math, Mermaid diagrams done; footnotes and definition lists need mdit-py-plugins (vendored, offline, sandboxed by CSP)
-- [ ] Preview themes: GitHub, Document (serif, print-like), Reader (large, centered); content width and preview font
+- [x] Preview themes: GitHub, Document (serif, print-like), Reader (large, centered); content width and preview font
 - [x] CSV / TSV: table with sticky header, column sorting, search, delimiter detection
 - [x] YAML / TOML / XML: the same tree view as JSON
 - [x] HTML: rendered page with scripts off by default; SVG: rendered image
-- [ ] Print and export to PDF from the preview (`WebKit.PrintOperation`)
+- [x] Print and export to PDF from the preview (`WebKit.PrintOperation`)
 - [~] Default view mode per file type (preferences; Markdown and data files so far)
 
 ## M4. Release quality

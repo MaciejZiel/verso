@@ -138,6 +138,33 @@ def steps(win):
     for doc in opened.values():
         win.tab_view.close_page(win.tab_view.get_page(doc))
     yield 400
+    # eksport do PDF: z podglądu (Markdown) i ze źródła (zwykły tekst)
+    pdf_results = {}
+    md.print_document(export_file=Gio.File.new_for_path(f"{S}/e2e/preview.pdf"), on_done=lambda ok: pdf_results.setdefault("md", ok))
+    plain = win.new_document()
+    plain.buffer.set_text("def f():\n    return 42\n" * 30)
+    plain.print_document(export_file=Gio.File.new_for_path(f"{S}/e2e/source.pdf"), on_done=lambda ok: pdf_results.setdefault("plain", ok))
+    yield 3000
+    def is_pdf(path):
+        return Path(path).exists() and Path(path).read_bytes()[:5] == b"%PDF-" and Path(path).stat().st_size > 1000
+    # With a "Print to File" printer the PDF is written directly; without one the print dialog opens.
+    direct = pdf_results.get("md") and is_pdf(f"{S}/e2e/preview.pdf")
+    check("export preview to pdf (direct or via dialog)", direct or pdf_results.get("md", "missing") is None)
+    for dialog_window in [w for w in Gtk.Window.list_toplevels() if w is not win and isinstance(w, Gtk.Window) and w.get_visible()]:
+        dialog_window.close()
+    check("export source to pdf", pdf_results.get("plain") and is_pdf(f"{S}/e2e/source.pdf"))
+    plain.buffer.set_modified(False)
+    win.tab_view.close_page(win.tab_view.get_page(plain))
+    # motywy podglądu
+    from verso import settings as _s0
+    _s0.get().set_string("preview-theme", "reader")
+    yield 200
+    theme = {}
+    md.webview.evaluate_javascript("document.documentElement.className", -1, None, None, None,
+                                   lambda w, r, _u: theme.setdefault("c", w.evaluate_javascript_finish(r).to_string()), None)
+    yield 300
+    check("preview theme applies", "theme-reader" in theme.get("c", ""))
+    _s0.get().set_string("preview-theme", "github")
     # pasek stanu: liczba słów, pozycja, przejdź do linii, język, wcięcia
     md.set_mode("edit")
     sb = md.statusbar

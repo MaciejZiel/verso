@@ -46,10 +46,7 @@ class PreferencesDialog(Adw.PreferencesDialog):
 
     def _mode_row(self, key, title):
         labels = {"edit": _("Edit"), "split": _("Side by Side"), "preview": _("Preview")}
-        row = Adw.ComboRow(title=title, model=Gtk.StringList.new([labels[m] for m in MODES]))
-        row.set_selected(MODES.index(self.prefs.get_string(key)))
-        row.connect("notify::selected", lambda r, _p: self.prefs.set_string(key, MODES[r.get_selected()]))
-        return row
+        return self._choice_row(key, title, [(mode, labels[mode]) for mode in MODES])
 
     # ---------- pages ----------
 
@@ -122,8 +119,25 @@ class PreferencesDialog(Adw.PreferencesDialog):
         page.add(session)
         return page
 
+    def _choice_row(self, key, title, choices):
+        """ComboRow over a GSettings <choices> key; choices is a list of (value, label)."""
+        values = [value for value, _label in choices]
+        row = Adw.ComboRow(title=title, model=Gtk.StringList.new([label for _value, label in choices]))
+        current = self.prefs.get_string(key)
+        row.set_selected(values.index(current) if current in values else 0)
+        row.connect("notify::selected", lambda r, _p: self.prefs.set_string(key, values[r.get_selected()]))
+        return row
+
     def _preview_page(self):
         page = Adw.PreferencesPage(title=_("Preview"), icon_name="view-reveal-symbolic")
+        look = Adw.PreferencesGroup(title=_("Appearance"))
+        look.add(self._choice_row("preview-theme", _("Style"), [
+            ("github", _("GitHub")), ("document", _("Document")), ("reader", _("Reader")),
+        ]))
+        look.add(self._choice_row("preview-width", _("Text Width"), [
+            ("narrow", _("Narrow")), ("normal", _("Normal")), ("wide", _("Wide")), ("full", _("Full Width")),
+        ]))
+        page.add(look)
         modes = Adw.PreferencesGroup(
             title=_("Default View"),
             description=_("How files open; Ctrl+E switches at any time"),

@@ -87,6 +87,8 @@ class Window(Adw.ApplicationWindow):
         section.append(_("New Window"), "app.new-window")
         section.append(_("Save"), "win.save")
         section.append(_("Save As…"), "win.save-as")
+        section.append(_("Print…"), "win.print")
+        section.append(_("Export as PDF…"), "win.export-pdf")
         menu.append_section(None, section)
         section = Gio.Menu()
         section.append(_("Find…"), "win.find")
@@ -136,6 +138,8 @@ class Window(Adw.ApplicationWindow):
         add("toggle-view", lambda: self.current and self.current.cycle_mode())
         add("format-json", lambda: self.current and self.current.format_json())
         add("goto-line", lambda: self.current and self.current.show_goto())
+        add("print", lambda: self.current and self.current.print_document())
+        add("export-pdf", self.export_pdf)
         add("zoom-in", lambda: self.get_application().change_zoom(+1))
         add("zoom-out", lambda: self.get_application().change_zoom(-1))
         add("zoom-reset", lambda: self.get_application().change_zoom(0))
@@ -241,6 +245,29 @@ class Window(Adw.ApplicationWindow):
                 self.open_file(files.get_item(i))
 
         dialog.open_multiple(self, None, done)
+
+    def export_pdf(self):
+        doc = self.current
+        if doc is None:
+            return
+        dialog = Gtk.FileDialog(title=_("Export as PDF"))
+        dialog.set_initial_name(doc.title.rsplit(".", 1)[0] + ".pdf")
+        if doc.file and doc.file.get_parent():
+            dialog.set_initial_folder(doc.file.get_parent())
+
+        def done(d, result):
+            try:
+                target = d.save_finish(result)
+            except GLib.Error:
+                return
+            doc.print_document(
+                export_file=target,
+                # ok is None when the print dialog took over (no direct PDF printer available).
+                on_done=lambda ok: ok is not None
+                and self.toast(_("Saved as {name}").format(name=target.get_basename()) if ok else _("Could not export the PDF")),
+            )
+
+        dialog.save(self, None, done)
 
     def save_document(self, doc, callback=None):
         if doc is None:

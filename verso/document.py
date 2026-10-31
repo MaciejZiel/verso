@@ -444,6 +444,8 @@ class Document(Gtk.Box):
     def _on_setting_changed(self, _settings, key):
         if key == "style-scheme":
             self._apply_theme()
+        elif key in ("preview-theme", "preview-width"):
+            self._apply_preview_options()
         elif key in self.EDITOR_KEYS:
             self._apply_editor_settings()
 
@@ -634,7 +636,14 @@ class Document(Gtk.Box):
                 self._schedule_preview()
             return
         self._apply_theme()
+        self._apply_preview_options()
         self._schedule_preview(immediate=True)
+
+    def _apply_preview_options(self):
+        if self._preview_ready and not self._html_shown:
+            prefs = settings.get()
+            options = {"theme": prefs.get_string("preview-theme"), "width": prefs.get_string("preview-width")}
+            self._run_js(f"window.verso.setOptions({json.dumps(options)})")
 
     def _show_html(self, text):
         """HTML files are rendered as real pages, with JavaScript off (opening a file must not run code)."""
@@ -661,9 +670,9 @@ class Document(Gtk.Box):
         else:
             self._preview_timer = GLib.timeout_add(PREVIEW_DELAY_MS, self._push_preview)
 
-    def _push_preview(self):
+    def _push_preview(self, force=False):
         self._preview_timer = 0
-        if not self._preview_ready or not self.kind or self.mode == "edit":
+        if not self._preview_ready or not self.kind or (self.mode == "edit" and not force):
             return GLib.SOURCE_REMOVE
         text = self.buffer.get_text(self.buffer.get_start_iter(), self.buffer.get_end_iter(), True)
         if self.kind == "html":
@@ -678,6 +687,81 @@ class Document(Gtk.Box):
         payload = render.preview_payload(self.kind, text, name)
         self._run_js(f"window.verso.update({json.dumps(payload, ensure_ascii=False)})")
         return GLib.SOURCE_REMOVE
+
+    # ---------- printing and PDF ----------
+
+    def print_document(self, export_file=None, on_done=None):
+        """Prints (or, with export_file, writes a PDF). Files with a preview print the rendered preview."""
+        window = self.get_root()
+        if self.kind and self._preview_ready:
+            self._push_preview(force=True)  # the preview may be stale while the editor alone is shown
+            GLib.timeout_add(200, lambda: self._print_preview(window, export_file, on_done) and False)
+        else:
+            self._print_source(window, export_file, on_done)
+
+    @staticmethod
+    def _file_printer_name():
+        """Name of GTK's "Print to File" printer (localized, and missing when no print backend is installed)."""
+        found = []
+
+        def check(printer):
+            if printer.is_virtual() and printer.accepts_pdf():
+                found.append(printer.get_name())
+                return True
+            return False
+
+        Gtk.enumerate_printers(check, True)
+        return found[0] if found else None
+
+    def _print_settings(self, export_file, printer=None):
+        print_settings = Gtk.PrintSettings()
+        print_settings.set(Gtk.PRINT_SETTINGS_OUTPUT_BASENAME, self.title.rsplit(".", 1)[0])
+        if export_file is not None:
+            if printer:
+                print_settings.set_printer(printer)
+            print_settings.set(Gtk.PRINT_SETTINGS_OUTPUT_FILE_FORMAT, "pdf")
+            print_settings.set(Gtk.PRINT_SETTINGS_OUTPUT_URI, export_file.get_uri())
+        return print_settings
+
+    def _print_preview(self, window, export_file, on_done):
+        operation = WebKit.PrintOperation.new(self.webview)
+        printer = self._file_printer_name() if export_file is not None else None
+        operation.set_print_settings(self._print_settings(export_file, printer))
+        if export_file is not None and printer:
+            if on_done is not None:
+                operation.connect("finished", lambda *_: on_done(True))
+                operation.connect("failed", lambda _op, error: on_done(False))
+            operation.print_()
+        else:
+            # Without a file printer WebKit cannot write a PDF on its own: the print dialog offers
+            # saving to a file instead (prefilled with the chosen name where the backend supports it).
+            if export_file is not None and on_done is not None:
+                on_done(None)
+            operation.run_dialog(window)
+
+    def _print_source(self, window, export_file, on_done):
+        compositor = GtkSource.PrintCompositor.new_from_view(self.view)
+        compositor.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
+        compositor.set_print_line_numbers(1 if settings.get().get_boolean("show-line-numbers") else 0)
+        compositor.set_print_header(True)
+        compositor.set_header_format(True, self.title, None, _("Page %N of %Q"))
+        operation = Gtk.PrintOperation(allow_async=True)
+        operation.set_print_settings(self._print_settings(export_file))
+
+        def begin(op, context):
+            while not compositor.paginate(context):
+                pass
+            op.set_n_pages(compositor.get_n_pages())
+
+        operation.connect("begin-print", begin)
+        operation.connect("draw-page", lambda _op, context, page: compositor.draw_page(context, page))
+        if on_done is not None:
+            operation.connect("done", lambda _op, result: on_done(result == Gtk.PrintOperationResult.APPLY))
+        if export_file is not None:
+            operation.set_export_filename(export_file.get_path())
+            operation.run(Gtk.PrintOperationAction.EXPORT, window)
+        else:
+            operation.run(Gtk.PrintOperationAction.PRINT_DIALOG, window)
 
     # ---------- synchronized scrolling (split view, Markdown) ----------
 

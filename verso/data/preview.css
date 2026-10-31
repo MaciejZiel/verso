@@ -45,7 +45,12 @@ body {
 
 /* ---------- Markdown ---------- */
 #layout { display: flex; justify-content: center; gap: 32px; padding: 28px 32px 64px; }
-#content { flex: 0 1 860px; min-width: 0; }
+#content { flex: 0 1 var(--content-width, 860px); min-width: 0; }
+html.width-narrow { --content-width: 680px; }
+html.width-normal { --content-width: 860px; }
+html.width-wide { --content-width: 1120px; }
+html.width-full { --content-width: 100%; }
+html.width-full #layout { justify-content: stretch; }
 #toc {
   flex: 0 0 220px; position: sticky; top: 24px; align-self: flex-start;
   max-height: calc(100vh - 48px); overflow-y: auto; font-size: 13px;
@@ -179,3 +184,34 @@ table.data-table { border-collapse: collapse; font-size: 13.5px; min-width: 100%
   background-size: 24px 24px; background-position: 0 0, 12px 12px;
 }
 .image-preview img { max-width: 100%; max-height: calc(100vh - 48px); }
+
+/* ---------- Preview styles ---------- */
+/* Document: serif, print-like, no rules under headings. */
+html.theme-document body { font: 17px/1.7 "Noto Serif", "Source Serif 4", "DejaVu Serif", Georgia, serif; }
+html.theme-document .markdown h1, html.theme-document .markdown h2 {
+  border-bottom: 0; padding-bottom: 0; font-family: inherit; letter-spacing: -0.01em;
+}
+html.theme-document .markdown h1 { font-size: 2.1em; text-align: center; margin-bottom: 1em; }
+html.theme-document .markdown p { text-align: justify; hyphens: auto; }
+html.theme-document .markdown blockquote { font-style: italic; }
+
+/* Reader: large text in a calm, narrow column. */
+html.theme-reader { --content-width: 700px; }
+html.theme-reader body { font-size: 19px; line-height: 1.8; }
+html.theme-reader:not(.dark) { --bg: #fbf8f1; --soft: rgba(80, 60, 20, 0.05); --code-bg: rgba(80, 60, 20, 0.07); }
+html.theme-reader .markdown h1, html.theme-reader .markdown h2 { border-bottom: 0; }
+html.theme-reader #toc { display: none; }
+
+/* ---------- Printing ---------- */
+@media print {
+  html, html.dark {
+    --bg: #ffffff; --fg: #000000; --muted: #555555; --border: #cccccc; --soft: #f5f5f5; --code-bg: #f3f3f3; --link: #1c4fa8;
+  }
+  #toc, #json-bar { display: none !important; }
+  #layout { padding: 0; display: block; }
+  #content { max-width: none; }
+  .markdown pre, .markdown table, .markdown img, .mermaid-diagram, .math-display { break-inside: avoid; }
+  .markdown h1, .markdown h2, .markdown h3 { break-after: avoid; }
+  .table-wrap { height: auto; overflow: visible; }
+  .data-table thead th { position: static; }
+}

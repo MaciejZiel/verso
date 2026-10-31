@@ -29,6 +29,7 @@ SHORTCUTS = {
     "win.toggle-view": ["<Control>e"],
     "win.format-json": ["<Control><Shift>i"],
     "win.goto-line": ["<Control>l"],
+    "win.print": ["<Control>p"],
     "win.zoom-in": ["<Control>plus", "<Control>equal", "<Control>KP_Add"],
     "win.zoom-out": ["<Control>minus", "<Control>KP_Subtract"],
     "win.zoom-reset": ["<Control>0", "<Control>KP_0"],
@@ -230,7 +231,8 @@ class Application(Adw.Application):
         dialog = Adw.ShortcutsDialog()
         groups = (
             (_("Files"), ((_("Open"), "<Control>o"), (_("New Tab"), "<Control>t"), (_("New Window"), "<Control><Shift>n"),
-                          (_("Save"), "<Control>s"), (_("Save As"), "<Control><Shift>s"), (_("Close Tab"), "<Control>w"))),
+                          (_("Save"), "<Control>s"), (_("Save As"), "<Control><Shift>s"), (_("Print"), "<Control>p"),
+                          (_("Close Tab"), "<Control>w"))),
             (_("View"), ((_("Switch Between Edit and Preview"), "<Control>e"), (_("Zoom In"), "<Control>plus"),
                          (_("Zoom Out"), "<Control>minus"), (_("Reset Zoom"), "<Control>0"),
                          (_("Next Tab"), "<Control>Page_Down"), (_("Previous Tab"), "<Control>Page_Up"))),

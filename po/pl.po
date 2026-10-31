@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: verso\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-31 22:58+0100\n"
+"POT-Creation-Date: 2026-10-31 23:03+0100\n"
 "PO-Revision-Date: 2026-10-31 22:09+0100\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -36,7 +36,7 @@ msgstr "Edycja i podgląd plików Markdown, JSON i innych plików tekstowych"
 msgid "text;editor;markdown;json;preview;csv;yaml;notes;"
 msgstr "tekst;edytor;markdown;json;podgląd;csv;yaml;notatki;"
 
-#: data/io.github.maciejziel.Verso.desktop.in.in:18 verso/app.py:232
+#: data/io.github.maciejziel.Verso.desktop.in.in:18 verso/app.py:233
 #: verso/window.py:87
 msgid "New Window"
 msgstr "Nowe okno"
@@ -169,112 +169,124 @@ msgstr "Automatyczne wcięcia"
 msgid "Close brackets and quotes automatically"
 msgstr "Automatyczne zamykanie nawiasów i cudzysłowów"
 
-#: data/io.github.maciejziel.Verso.gschema.xml:97
+#: data/io.github.maciejziel.Verso.gschema.xml:98
+msgid "Preview style"
+msgstr "Styl podglądu"
+
+#: data/io.github.maciejziel.Verso.gschema.xml:103
+msgid "Width of the preview text"
+msgstr "Szerokość tekstu podglądu"
+
+#: data/io.github.maciejziel.Verso.gschema.xml:107
 msgid "Synchronized scrolling"
 msgstr "Synchroniczne przewijanie"
 
-#: data/io.github.maciejziel.Verso.gschema.xml:98
+#: data/io.github.maciejziel.Verso.gschema.xml:108
 msgid "Scroll the editor and the preview together in the side by side view."
 msgstr "Przewijanie edytora i podglądu razem w widoku obok siebie."
 
-#: data/io.github.maciejziel.Verso.gschema.xml:103
+#: data/io.github.maciejziel.Verso.gschema.xml:113
 msgid "Default view for Markdown files"
 msgstr "Domyślny widok plików Markdown"
 
-#: data/io.github.maciejziel.Verso.gschema.xml:108
+#: data/io.github.maciejziel.Verso.gschema.xml:118
 msgid "Default view for JSON and other data files"
 msgstr "Domyślny widok plików JSON i innych plików danych"
 
-#: verso/app.py:49
+#: verso/app.py:50
 msgid "Open a new window"
 msgstr "Otwiera nowe okno"
 
-#: verso/app.py:214
+#: verso/app.py:215
 #, python-brace-format
 msgid "Zoom: {percent}%"
 msgstr "Powiększenie: {percent}%"
 
-#: verso/app.py:224
+#: verso/app.py:225
 msgid "Text editor with live previews for Markdown, JSON and more"
 msgstr "Edytor tekstu z podglądem na żywo dla Markdowna, JSON-a i innych formatów"
 
-#: verso/app.py:232
+#: verso/app.py:233
 msgid "Files"
 msgstr "Pliki"
 
-#: verso/app.py:232 verso/window.py:79
+#: verso/app.py:233 verso/window.py:79
 msgid "Open"
 msgstr "Otwórz"
 
-#: verso/app.py:232
+#: verso/app.py:233
 msgid "New Tab"
 msgstr "Nowa karta"
 
-#: verso/app.py:233 verso/window.py:88
+#: verso/app.py:234 verso/window.py:88
 msgid "Save"
 msgstr "Zapisz"
 
-#: verso/app.py:233 verso/window.py:256
+#: verso/app.py:234 verso/window.py:283
 msgid "Save As"
 msgstr "Zapisz jako"
 
-#: verso/app.py:233
+#: verso/app.py:234
+msgid "Print"
+msgstr "Drukuj"
+
+#: verso/app.py:235
 msgid "Close Tab"
 msgstr "Zamknij kartę"
 
-#: verso/app.py:234
+#: verso/app.py:236
 msgid "View"
 msgstr "Widok"
 
-#: verso/app.py:234
+#: verso/app.py:236
 msgid "Switch Between Edit and Preview"
 msgstr "Przełącz między edycją a podglądem"
 
-#: verso/app.py:234
+#: verso/app.py:236
 msgid "Zoom In"
 msgstr "Powiększ"
 
-#: verso/app.py:235
+#: verso/app.py:237
 msgid "Zoom Out"
 msgstr "Pomniejsz"
 
-#: verso/app.py:235
+#: verso/app.py:237
 msgid "Reset Zoom"
 msgstr "Przywróć powiększenie"
 
-#: verso/app.py:236
+#: verso/app.py:238
 msgid "Next Tab"
 msgstr "Następna karta"
 
-#: verso/app.py:236
+#: verso/app.py:238
 msgid "Previous Tab"
 msgstr "Poprzednia karta"
 
-#: verso/app.py:237 verso/preferences.py:114
+#: verso/app.py:239 verso/preferences.py:111
 msgid "Editing"
 msgstr "Edycja"
 
-#: verso/app.py:237 verso/document.py:175
+#: verso/app.py:239 verso/document.py:175
 msgid "Find"
 msgstr "Znajdź"
 
-#: verso/app.py:237
+#: verso/app.py:239
 msgid "Find and Replace"
 msgstr "Znajdź i zamień"
 
-#: verso/app.py:237
+#: verso/app.py:239
 msgid "Go to Line"
 msgstr "Przejdź do wiersza"
 
-#: verso/app.py:238 verso/window.py:95
+#: verso/app.py:240 verso/window.py:97
 msgid "Format JSON"
 msgstr "Sformatuj JSON"
 
-#: verso/app.py:238
+#: verso/app.py:240
 msgid "Undo"
 msgstr "Cofnij"
 
-#: verso/app.py:238
+#: verso/app.py:240
 msgid "Redo"
 msgstr "Ponów"
 
@@ -319,7 +331,7 @@ msgstr "Zamień wszystkie"
 msgid "New Document {number}"
 msgstr "Nowy dokument {number}"
 
-#: verso/document.py:225 verso/window.py:257
+#: verso/document.py:225 verso/window.py:284
 msgid "New Document"
 msgstr "Nowy dokument"
 
@@ -346,7 +358,7 @@ msgstr "Odrzucić zmiany i otworzyć ponownie?"
 msgid "Reopening “{title}” with another encoding replaces your unsaved changes with the file on disk."
 msgstr "Ponowne otwarcie „{title}” z innym kodowaniem zastąpi niezapisane zmiany zawartością pliku z dysku."
 
-#: verso/document.py:334 verso/window.py:362
+#: verso/document.py:334 verso/window.py:389
 msgid "_Cancel"
 msgstr "_Anuluj"
 
@@ -359,25 +371,29 @@ msgstr "_Odrzuć i otwórz ponownie"
 msgid "Could not save the file: {error}"
 msgstr "Nie udało się zapisać pliku: {error}"
 
-#: verso/document.py:600
+#: verso/document.py:602
 msgid "Formatting is available only for JSON files."
 msgstr "Formatowanie działa tylko dla plików JSON."
 
-#: verso/document.py:606
+#: verso/document.py:608
 #, python-brace-format
 msgid "Invalid JSON. {error}"
 msgstr "Niepoprawny JSON. {error}"
 
-#: verso/document.py:834
+#: verso/document.py:747
+msgid "Page %N of %Q"
+msgstr "Strona %N z %Q"
+
+#: verso/document.py:918
 #, python-brace-format
 msgid "{position} of {total}"
 msgstr "{position} z {total}"
 
-#: verso/document.py:834
+#: verso/document.py:918
 msgid "No matches"
 msgstr "Brak wyników"
 
-#: verso/document.py:847
+#: verso/document.py:931
 #, python-brace-format
 msgid "Replaced {count} match"
 msgid_plural "Replaced {count} matches"
@@ -385,7 +401,7 @@ msgstr[0] "Zamieniono {count} wystąpienie"
 msgstr[1] "Zamieniono {count} wystąpienia"
 msgstr[2] "Zamieniono {count} wystąpień"
 
-#: verso/document.py:883
+#: verso/document.py:967
 #, python-brace-format
 msgid "Could not keep a backup of unsaved changes: {error}"
 msgstr "Nie udało się zachować kopii niezapisanych zmian: {error}"
@@ -479,213 +495,266 @@ msgstr "Otwórz plik (Ctrl+O)"
 msgid "Save As…"
 msgstr "Zapisz jako…"
 
-#: verso/window.py:92
+#: verso/window.py:90
+msgid "Print…"
+msgstr "Drukuj…"
+
+#: verso/window.py:91
+msgid "Export as PDF…"
+msgstr "Eksportuj do PDF…"
+
+#: verso/window.py:94
 msgid "Find…"
 msgstr "Znajdź…"
 
-#: verso/window.py:93
+#: verso/window.py:95
 msgid "Find and Replace…"
 msgstr "Znajdź i zamień…"
 
-#: verso/window.py:94
+#: verso/window.py:96
 msgid "Go to Line…"
 msgstr "Przejdź do wiersza…"
 
-#: verso/window.py:98 verso/preferences.py:117
+#: verso/window.py:100 verso/preferences.py:114
 msgid "Check Spelling"
 msgstr "Sprawdzanie pisowni"
 
-#: verso/window.py:99 verso/preferences.py:116
+#: verso/window.py:101 verso/preferences.py:113
 msgid "Wrap Lines"
 msgstr "Zawijanie wierszy"
 
-#: verso/window.py:102 verso/preferences.py:26
+#: verso/window.py:104 verso/preferences.py:26
 msgid "Preferences"
 msgstr "Ustawienia"
 
-#: verso/window.py:103
+#: verso/window.py:105
 msgid "Keyboard Shortcuts"
 msgstr "Skróty klawiszowe"
 
-#: verso/window.py:104
+#: verso/window.py:106
 msgid "About Verso"
 msgstr "O programie Verso"
 
-#: verso/window.py:106
+#: verso/window.py:108
 msgid "Main Menu"
 msgstr "Menu główne"
 
-#: verso/window.py:111 verso/preferences.py:48
+#: verso/window.py:113 verso/preferences.py:48
 msgid "Edit"
 msgstr "Edycja"
 
-#: verso/window.py:111
+#: verso/window.py:113
 msgid "Edit and Preview Side by Side"
 msgstr "Edycja i podgląd obok siebie"
 
-#: verso/window.py:111 verso/preferences.py:48 verso/preferences.py:126
+#: verso/window.py:113 verso/preferences.py:48 verso/preferences.py:132
 msgid "Preview"
 msgstr "Podgląd"
 
-#: verso/window.py:112
+#: verso/window.py:114
 #, python-brace-format
 msgid "{mode} (Ctrl+E to switch)"
 msgstr "{mode} (Ctrl+E przełącza)"
 
-#: verso/window.py:220
+#: verso/window.py:224
 msgid "Open File"
 msgstr "Otwórz plik"
 
-#: verso/window.py:222
+#: verso/window.py:226
 msgid "Text Files"
 msgstr "Pliki tekstowe"
 
-#: verso/window.py:227
+#: verso/window.py:231
 msgid "All Files"
 msgstr "Wszystkie pliki"
 
-#: verso/window.py:359
+#: verso/window.py:253
+msgid "Export as PDF"
+msgstr "Eksportuj do PDF"
+
+#: verso/window.py:267
+#, python-brace-format
+msgid "Saved as {name}"
+msgstr "Zapisano jako {name}"
+
+#: verso/window.py:267
+msgid "Could not export the PDF"
+msgstr "Nie udało się wyeksportować PDF"
+
+#: verso/window.py:386
 msgid "Save Changes?"
 msgstr "Zapisać zmiany?"
 
-#: verso/window.py:360
+#: verso/window.py:387
 #, python-brace-format
 msgid "Unsaved changes to “{title}” will be lost if you don’t save them."
 msgstr "Niezapisane zmiany w „{title}” zostaną utracone, jeśli ich nie zapiszesz."
 
-#: verso/window.py:363
+#: verso/window.py:390
 msgid "_Discard"
 msgstr "_Odrzuć"
 
-#: verso/window.py:364
+#: verso/window.py:391
 msgid "_Save"
 msgstr "_Zapisz"
 
-#: verso/preferences.py:48 verso/preferences.py:134
+#: verso/preferences.py:48 verso/preferences.py:148
 msgid "Side by Side"
 msgstr "Obok siebie"
 
-#: verso/preferences.py:57
+#: verso/preferences.py:54 verso/preferences.py:133
 msgid "Appearance"
 msgstr "Wygląd"
 
-#: verso/preferences.py:59
+#: verso/preferences.py:56 verso/preferences.py:134
 msgid "Style"
 msgstr "Styl"
 
-#: verso/preferences.py:77
+#: verso/preferences.py:74
 msgid "Font"
 msgstr "Czcionka"
 
-#: verso/preferences.py:78
+#: verso/preferences.py:75
 msgid "Use System Font"
 msgstr "Czcionka systemowa"
 
-#: verso/preferences.py:80 verso/preferences.py:81
+#: verso/preferences.py:77 verso/preferences.py:78
 msgid "Editor Font"
 msgstr "Czcionka edytora"
 
-#: verso/preferences.py:92
+#: verso/preferences.py:89
 msgid "Display"
 msgstr "Wyświetlanie"
 
-#: verso/preferences.py:93
+#: verso/preferences.py:90
 msgid "Line Numbers"
 msgstr "Numery wierszy"
 
-#: verso/preferences.py:94
+#: verso/preferences.py:91
 msgid "Highlight Current Line"
 msgstr "Wyróżnianie bieżącego wiersza"
 
-#: verso/preferences.py:95
+#: verso/preferences.py:92
 msgid "Overview Map"
 msgstr "Mapa dokumentu"
 
-#: verso/preferences.py:95
+#: verso/preferences.py:92
 msgid "A miniature of the document next to the scrollbar"
 msgstr "Miniatura dokumentu obok paska przewijania"
 
-#: verso/preferences.py:96
+#: verso/preferences.py:93
 msgid "Show Spaces and Tabs"
 msgstr "Spacje i tabulatory"
 
-#: verso/preferences.py:97
+#: verso/preferences.py:94
 msgid "Status Bar"
 msgstr "Pasek stanu"
 
-#: verso/preferences.py:97
+#: verso/preferences.py:94
 msgid "Word count, cursor position, language, indentation and encoding"
 msgstr "Liczba słów, położenie kursora, język, wcięcia i kodowanie"
 
-#: verso/preferences.py:98
+#: verso/preferences.py:95
 msgid "Right Margin"
 msgstr "Prawy margines"
 
-#: verso/preferences.py:100
+#: verso/preferences.py:97
 msgid "Margin Position"
 msgstr "Położenie marginesu"
 
-#: verso/preferences.py:106
+#: verso/preferences.py:103
 msgid "Behavior"
 msgstr "Zachowanie"
 
-#: verso/preferences.py:108 verso/statusbar.py:57
+#: verso/preferences.py:105 verso/statusbar.py:57
 msgid "Indentation"
 msgstr "Wcięcia"
 
-#: verso/preferences.py:109
+#: verso/preferences.py:106
 msgid "Tab Width"
 msgstr "Szerokość tabulatora"
 
-#: verso/preferences.py:110
+#: verso/preferences.py:107
 msgid "Insert Spaces Instead of Tabs"
 msgstr "Spacje zamiast tabulatorów"
 
-#: verso/preferences.py:111
+#: verso/preferences.py:108
 msgid "Automatic Indentation"
 msgstr "Automatyczne wcięcia"
 
-#: verso/preferences.py:115
+#: verso/preferences.py:112
 msgid "Close Brackets and Quotes"
 msgstr "Zamykanie nawiasów i cudzysłowów"
 
-#: verso/preferences.py:115
+#: verso/preferences.py:112
 msgid "Typing ( [ { \" ' inserts the closing character"
 msgstr "Wpisanie ( [ { \" ' wstawia znak zamykający"
 
-#: verso/preferences.py:120
+#: verso/preferences.py:117
 msgid "Session"
 msgstr "Sesja"
 
-#: verso/preferences.py:121
+#: verso/preferences.py:118
 msgid "Restore Session"
 msgstr "Przywracanie sesji"
 
-#: verso/preferences.py:121
+#: verso/preferences.py:118
 msgid "Reopen the documents from last time"
 msgstr "Ponowne otwieranie dokumentów z poprzedniego razu"
 
-#: verso/preferences.py:128
+#: verso/preferences.py:135
+msgid "GitHub"
+msgstr "GitHub"
+
+#: verso/preferences.py:135
+msgid "Document"
+msgstr "Dokument"
+
+#: verso/preferences.py:135
+msgid "Reader"
+msgstr "Czytnik"
+
+#: verso/preferences.py:137
+msgid "Text Width"
+msgstr "Szerokość tekstu"
+
+#: verso/preferences.py:138
+msgid "Narrow"
+msgstr "Wąska"
+
+#: verso/preferences.py:138
+msgid "Normal"
+msgstr "Zwykła"
+
+#: verso/preferences.py:138
+msgid "Wide"
+msgstr "Szeroka"
+
+#: verso/preferences.py:138
+msgid "Full Width"
+msgstr "Cała szerokość"
+
+#: verso/preferences.py:142
 msgid "Default View"
 msgstr "Domyślny widok"
 
-#: verso/preferences.py:129
+#: verso/preferences.py:143
 msgid "How files open; Ctrl+E switches at any time"
 msgstr "Jak otwierają się pliki; Ctrl+E przełącza w każdej chwili"
 
-#: verso/preferences.py:131
+#: verso/preferences.py:145
 msgid "Markdown"
 msgstr "Markdown"
 
-#: verso/preferences.py:132
+#: verso/preferences.py:146
 msgid "JSON and Data Files"
 msgstr "JSON i pliki danych"
 
-#: verso/preferences.py:135
+#: verso/preferences.py:149
 msgid "Synchronized Scrolling"
 msgstr "Synchroniczne przewijanie"
 
-#: verso/preferences.py:135
+#: verso/preferences.py:149
 msgid "The preview follows the editor and the other way round"
 msgstr "Podgląd podąża za edytorem i odwrotnie"
 

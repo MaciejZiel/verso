@@ -92,6 +92,16 @@
       <summary>Close brackets and quotes automatically</summary>
     </key>
     <!-- Preview -->
+    <key name="preview-theme" type="s">
+      <choices><choice value="github"/><choice value="document"/><choice value="reader"/></choices>
+      <default>'github'</default>
+      <summary>Preview style</summary>
+    </key>
+    <key name="preview-width" type="s">
+      <choices><choice value="narrow"/><choice value="normal"/><choice value="wide"/><choice value="full"/></choices>
+      <default>'normal'</default>
+      <summary>Width of the preview text</summary>
+    </key>
     <key name="sync-scroll" type="b">
       <default>true</default>
       <summary>Synchronized scrolling</summary>
