@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="page" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#f0efed"/>
+    </linearGradient>
+    <linearGradient id="badge" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#62a0ea"/>
+      <stop offset="1" stop-color="#1c71d8"/>
+    </linearGradient>
+  </defs>
+  <!-- kartka -->
+  <path d="M28 12h50l26 26v72a8 8 0 0 1-8 8H28a8 8 0 0 1-8-8V20a8 8 0 0 1 8-8z" fill="#c0bfbc"/>
+  <path d="M28 10h50l26 26v72a8 8 0 0 1-8 8H28a8 8 0 0 1-8-8V18a8 8 0 0 1 8-8z" fill="url(#page)"/>
+  <path d="M78 10v18a8 8 0 0 0 8 8h18z" fill="#deddda"/>
+  <!-- nagłówek i wiersze tekstu -->
+  <rect x="34" y="30" width="30" height="7" rx="3.5" fill="#3584e4"/>
+  <rect x="34" y="46" width="56" height="5" rx="2.5" fill="#9a9996"/>
+  <rect x="34" y="57" width="48" height="5" rx="2.5" fill="#9a9996"/>
+  <rect x="34" y="68" width="52" height="5" rx="2.5" fill="#9a9996"/>
+  <rect x="34" y="79" width="26" height="5" rx="2.5" fill="#9a9996"/>
+  <!-- plakietka z okiem: podgląd -->
+  <circle cx="92" cy="94" r="26" fill="#1a5fb4"/>
+  <circle cx="92" cy="92" r="26" fill="url(#badge)"/>
+  <path d="M74 92c4.5-7.5 10.5-11.5 18-11.5S105.5 84.5 110 92c-4.5 7.5-10.5 11.5-18 11.5S78.5 99.5 74 92z" fill="#ffffff"/>
+  <circle cx="92" cy="92" r="6.5" fill="#1c71d8"/>
+  <circle cx="94.5" cy="89.5" r="2" fill="#ffffff"/>
+</svg>

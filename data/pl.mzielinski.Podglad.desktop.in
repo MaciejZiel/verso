@@ -1,0 +1,18 @@
+[Desktop Entry]
+Type=Application
+Name=Podgląd
+GenericName=Edytor tekstu z podglądem
+Comment=Edycja i podgląd plików Markdown i JSON
+Exec=@BIN@ %U
+Icon=pl.mzielinski.Podglad
+Terminal=false
+StartupNotify=true
+StartupWMClass=pl.mzielinski.Podglad
+Categories=GNOME;GTK;Utility;TextEditor;
+Keywords=markdown;json;tekst;edytor;podgląd;md;
+MimeType=text/markdown;text/x-markdown;application/json;text/plain;text/x-python;application/x-yaml;text/csv;
+Actions=new-window;
+
+[Desktop Action new-window]
+Name=Nowe okno
+Exec=@BIN@ --new-window

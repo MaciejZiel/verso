@@ -1,0 +1,192 @@
+"""Aplikacja: jedna instancja (D-Bus), skróty, powiększenie wspólne dla okien."""
+
+import os
+import sys
+
+import gi
+
+gi.require_version("Gtk", "4.0")
+gi.require_version("Adw", "1")
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
+
+from .window import Window  # noqa: E402
+
+APP_ID = "pl.mzielinski.Podglad"
+VERSION = "1.0"
+ZOOM_STEPS = (0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0)
+
+SHORTCUTS = {
+    "win.open": ["<Control>o"],
+    "win.new-tab": ["<Control>t", "<Control>n"],
+    "app.new-window": ["<Control><Shift>n"],
+    "win.save": ["<Control>s"],
+    "win.save-as": ["<Control><Shift>s"],
+    "win.close-tab": ["<Control>w"],
+    "win.find": ["<Control>f"],
+    "win.replace": ["<Control>h"],
+    "win.toggle-view": ["<Control>e"],
+    "win.format-json": ["<Control><Shift>i"],
+    "win.zoom-in": ["<Control>plus", "<Control>equal", "<Control>KP_Add"],
+    "win.zoom-out": ["<Control>minus", "<Control>KP_Subtract"],
+    "win.zoom-reset": ["<Control>0", "<Control>KP_0"],
+    "win.next-tab": ["<Control>Page_Down", "<Control>Tab"],
+    "win.prev-tab": ["<Control>Page_Up", "<Control><Shift>Tab"],
+    "app.quit": ["<Control>q"],
+    "app.shortcuts": ["<Control>question"],
+}
+
+
+class Application(Adw.Application):
+    def __init__(self):
+        super().__init__(application_id=APP_ID, flags=Gio.ApplicationFlags.HANDLES_OPEN)
+        GLib.set_application_name("Podgląd")
+        self.zoom = 1.0
+        self._css = Gtk.CssProvider()
+        self.add_main_option("new-window", 0, GLib.OptionFlags.NONE, GLib.OptionArg.NONE, "Otwórz nowe okno", None)
+        self.connect("handle-local-options", self._on_local_options)
+
+    def _on_local_options(self, _app, options):
+        if options.contains("new-window"):
+            # Działa też, gdy program już jest uruchomiony: akcja trafia do pierwszej instancji.
+            self.register(None)
+            if self.get_is_remote():
+                self.activate_action("new-window", None)
+                return 0
+        return -1  # zwykłe uruchomienie: do_activate otworzy okno
+
+    def do_startup(self):
+        Adw.Application.do_startup(self)
+        Gtk.Window.set_default_icon_name(APP_ID)
+        Gtk.StyleContext.add_provider_for_display(
+            Gdk.Display.get_default(),
+            self._css,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
+        )
+        self._apply_css()
+        for name, callback in (
+            ("new-window", self._new_window),
+            ("quit", self.quit),
+            ("about", self._about),
+            ("shortcuts", self._shortcuts),
+        ):
+            action = Gio.SimpleAction.new(name, None)
+            action.connect("activate", lambda *_a, cb=callback: cb())
+            self.add_action(action)
+        for action, accels in SHORTCUTS.items():
+            self.set_accels_for_action(action, accels)
+
+    def do_activate(self):
+        window = self.get_active_window() or self._new_window()
+        if not window.documents:
+            window.new_document()
+        window.present()
+        self._maybe_screenshot(window)
+
+    def do_open(self, files, _n_files, _hint):
+        window = self.get_active_window() or self._new_window()
+        for file in files:
+            window.open_file(file)
+        window.present()
+        self._maybe_screenshot(window)
+
+    def _new_window(self):
+        window = Window(self)
+        window.present()
+        if not window.documents:
+            window.new_document()
+        return window
+
+    # ---------- wygląd ----------
+
+    def _monospace_font(self):
+        try:
+            name = Gio.Settings.new("org.gnome.desktop.interface").get_string("monospace-font-name")
+        except GLib.Error:
+            name = "Monospace 11"
+        desc = Pango.FontDescription.from_string(name or "Monospace 11")
+        size = desc.get_size() / Pango.SCALE or 11
+        return desc.get_family() or "Monospace", size
+
+    def _apply_css(self):
+        family, size = self._monospace_font()
+        self._css.load_from_string(
+            f'.podglad-source {{ font-family: "{family}", monospace; font-size: {size * self.zoom:.1f}pt; }}\n'
+            ".podglad-search { padding: 6px 8px; border-bottom: 1px solid alpha(currentColor, 0.12); }"
+        )
+
+    def change_zoom(self, direction):
+        if direction == 0:
+            self.zoom = 1.0
+        else:
+            index = min(range(len(ZOOM_STEPS)), key=lambda i: abs(ZOOM_STEPS[i] - self.zoom))
+            index = max(0, min(len(ZOOM_STEPS) - 1, index + direction))
+            self.zoom = ZOOM_STEPS[index]
+        self._apply_css()
+        for window in self.get_windows():
+            if isinstance(window, Window):
+                for doc in window.documents:
+                    doc.set_zoom(self.zoom)
+                window.toast(f"Powiększenie: {round(self.zoom * 100)}%")
+
+    # ---------- okna informacyjne ----------
+
+    def _about(self):
+        dialog = Adw.AboutDialog(
+            application_name="Podgląd",
+            application_icon=APP_ID,
+            developer_name="Maciej Zieliński",
+            version=VERSION,
+            comments="Edytor tekstu z podglądem Markdowna i JSON-a.",
+            license_type=Gtk.License.MIT_X11,
+        )
+        dialog.present(self.get_active_window())
+
+    def _shortcuts(self):
+        dialog = Adw.ShortcutsDialog()
+        groups = (
+            ("Pliki", (("Otwórz", "<Control>o"), ("Nowa karta", "<Control>t"), ("Nowe okno", "<Control><Shift>n"),
+                       ("Zapisz", "<Control>s"), ("Zapisz jako", "<Control><Shift>s"), ("Zamknij kartę", "<Control>w"))),
+            ("Widok", (("Przełącz edycję i podgląd", "<Control>e"), ("Powiększ", "<Control>plus"),
+                       ("Pomniejsz", "<Control>minus"), ("Zwykły rozmiar", "<Control>0"),
+                       ("Następna karta", "<Control>Page_Down"), ("Poprzednia karta", "<Control>Page_Up"))),
+            ("Edycja", (("Znajdź", "<Control>f"), ("Znajdź i zamień", "<Control>h"),
+                        ("Sformatuj JSON", "<Control><Shift>i"), ("Cofnij", "<Control>z"), ("Ponów", "<Control><Shift>z"))),
+        )
+        for title, items in groups:
+            section = Adw.ShortcutsSection(title=title)
+            for label, accel in items:
+                section.add(Adw.ShortcutsItem(title=label, accelerator=accel))
+            dialog.add(section)
+        dialog.present(self.get_active_window())
+
+    # ---------- zrzut ekranu do testów ----------
+
+    def _maybe_screenshot(self, window):
+        """PODGLAD_SCREENSHOT=plik.png: po chwili zapisuje widok okna i kończy (do weryfikacji)."""
+        path = os.environ.get("PODGLAD_SCREENSHOT")
+        if not path or getattr(self, "_shot_scheduled", False):
+            return
+        self._shot_scheduled = True
+        mode = os.environ.get("PODGLAD_MODE")
+        if mode:
+            GLib.timeout_add(800, lambda: window.current and window.current.set_mode(mode) and False)
+        if os.environ.get("PODGLAD_DARK"):
+            Adw.StyleManager.get_default().set_color_scheme(Adw.ColorScheme.FORCE_DARK)
+
+        def shoot():
+            width, height = window.get_width(), window.get_height()
+            paintable = Gtk.WidgetPaintable.new(window)
+            snapshot = Gtk.Snapshot()
+            paintable.snapshot(snapshot, width, height)
+            node = snapshot.to_node()
+            if node is not None:
+                texture = window.get_renderer().render_texture(node, None)
+                texture.save_to_png(path)
+            self.quit()
+            return GLib.SOURCE_REMOVE
+
+        GLib.timeout_add(int(os.environ.get("PODGLAD_DELAY", "2500")), shoot)
+
+
+def main():
+    return Application().run(sys.argv)

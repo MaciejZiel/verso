@@ -1,0 +1,138 @@
+/* Kolory Adwaita: jasny i ciemny motyw przełączane klasą na <html>. */
+:root {
+  --bg: #ffffff;
+  --fg: rgba(0, 0, 6, 0.8);
+  --muted: rgba(0, 0, 6, 0.55);
+  --border: rgba(0, 0, 6, 0.12);
+  --soft: rgba(0, 0, 6, 0.04);
+  --code-bg: rgba(0, 0, 6, 0.05);
+  --accent: #3584e4;
+  --link: #1c71d8;
+  --hover: rgba(0, 0, 6, 0.06);
+  --mark: rgba(246, 211, 45, 0.45);
+  --j-key: #1a5fb4;
+  --j-str: #26a269;
+  --j-num: #c64600;
+  --j-bool: #9141ac;
+  --j-null: #77767b;
+  --danger: #c01c28;
+}
+html.dark {
+  --bg: #1e1e1e;
+  --fg: #ffffff;
+  --muted: rgba(255, 255, 255, 0.55);
+  --border: rgba(255, 255, 255, 0.12);
+  --soft: rgba(255, 255, 255, 0.04);
+  --code-bg: rgba(255, 255, 255, 0.07);
+  --link: #78aeed;
+  --hover: rgba(255, 255, 255, 0.07);
+  --mark: rgba(246, 211, 45, 0.3);
+  --j-key: #99c1f1;
+  --j-str: #8ff0a4;
+  --j-num: #ffbe6f;
+  --j-bool: #dc8add;
+  --j-null: #9a9996;
+  --danger: #ff7b63;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--fg); }
+body {
+  font: 15px/1.6 system-ui, "Adwaita Sans", "Ubuntu Sans", "Cantarell", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: rgba(53, 132, 228, 0.3); }
+
+/* ---------- Markdown ---------- */
+#layout { display: flex; justify-content: center; gap: 32px; padding: 28px 32px 64px; }
+#content { flex: 0 1 860px; min-width: 0; }
+#toc {
+  flex: 0 0 220px; position: sticky; top: 24px; align-self: flex-start;
+  max-height: calc(100vh - 48px); overflow-y: auto; font-size: 13px;
+  border-left: 1px solid var(--border); padding-left: 14px;
+}
+#toc[hidden] { display: none; }
+#toc .toc-title { font-weight: 700; color: var(--muted); text-transform: uppercase; font-size: 11px; letter-spacing: .06em; margin-bottom: 8px; }
+#toc a { display: block; color: var(--muted); text-decoration: none; padding: 3px 6px; border-radius: 6px; line-height: 1.35; }
+#toc a:hover { background: var(--hover); color: var(--fg); }
+#toc a.active { color: var(--accent); font-weight: 600; }
+@media (max-width: 1080px) { #toc { display: none; } }
+
+.markdown > :first-child { margin-top: 0 !important; }
+.markdown h1, .markdown h2, .markdown h3, .markdown h4, .markdown h5, .markdown h6 {
+  font-weight: 700; line-height: 1.25; margin: 1.6em 0 .6em; scroll-margin-top: 16px;
+}
+.markdown h1 { font-size: 2em; padding-bottom: .3em; border-bottom: 1px solid var(--border); }
+.markdown h2 { font-size: 1.5em; padding-bottom: .3em; border-bottom: 1px solid var(--border); }
+.markdown h3 { font-size: 1.25em; }
+.markdown h4 { font-size: 1em; }
+.markdown h5, .markdown h6 { font-size: .875em; color: var(--muted); }
+.markdown p, .markdown ul, .markdown ol, .markdown table, .markdown pre, .markdown blockquote { margin: 0 0 1em; }
+.markdown a { color: var(--link); text-decoration: none; }
+.markdown a:hover { text-decoration: underline; }
+.markdown ul, .markdown ol { padding-left: 2em; }
+.markdown li + li { margin-top: .25em; }
+.markdown li.task-list-item { list-style: none; margin-left: -1.4em; }
+.markdown li.task-list-item input { margin: 0 .45em 0 0; vertical-align: -1px; accent-color: var(--accent); }
+.markdown hr { border: 0; height: 1px; background: var(--border); margin: 1.8em 0; }
+.markdown blockquote { margin-left: 0; padding: .1em 1em; color: var(--muted); border-left: 4px solid var(--border); }
+.markdown img { max-width: 100%; border-radius: 6px; }
+.markdown code {
+  font-family: ui-monospace, "Ubuntu Sans Mono", "Adwaita Mono", "Source Code Pro", monospace;
+  font-size: .88em; background: var(--code-bg); padding: .15em .4em; border-radius: 6px;
+}
+.markdown pre, .markdown .highlight pre {
+  background: var(--code-bg); padding: 14px 16px; border-radius: 10px; overflow-x: auto; line-height: 1.45;
+}
+.markdown .highlight { background: transparent !important; }
+.markdown pre code { background: none; padding: 0; font-size: .86em; }
+.markdown table { border-collapse: collapse; display: block; width: max-content; max-width: 100%; overflow-x: auto; font-size: .94em; }
+.markdown th, .markdown td { border: 1px solid var(--border); padding: 6px 12px; text-align: left; vertical-align: top; }
+.markdown th { font-weight: 600; background: var(--soft); }
+.markdown tr:nth-child(2n) td { background: var(--soft); }
+
+/* ---------- JSON ---------- */
+#json-bar {
+  position: sticky; top: 0; z-index: 2; display: flex; gap: 6px; align-items: center;
+  padding: 8px 12px; background: var(--bg); border-bottom: 1px solid var(--border);
+}
+#json-bar button {
+  font: inherit; font-size: 13px; color: var(--fg); background: var(--hover); border: 0;
+  border-radius: 6px; padding: 5px 10px; cursor: pointer;
+}
+#json-bar button:hover { background: var(--border); }
+#json-bar button.on { background: var(--accent); color: #fff; }
+#json-search {
+  flex: 1; max-width: 340px; font: inherit; font-size: 13px; color: var(--fg); background: var(--hover);
+  border: 2px solid transparent; border-radius: 6px; padding: 4px 10px; outline: none;
+}
+#json-search:focus { border-color: rgba(53, 132, 228, 0.5); }
+#json-count { font-size: 12px; color: var(--muted); }
+#json-tree, #json-raw {
+  font-family: ui-monospace, "Ubuntu Sans Mono", "Adwaita Mono", monospace; font-size: 13.5px;
+  line-height: 1.6; padding: 10px 16px 64px 28px;
+}
+#json-raw { white-space: pre; margin: 0; }
+.jn { padding-left: 18px; }
+.jrow { position: relative; border-radius: 4px; white-space: nowrap; }
+.jrow:hover { background: var(--hover); }
+.jtoggle {
+  position: absolute; left: -16px; width: 16px; text-align: center; cursor: pointer; color: var(--muted);
+  user-select: none; transition: transform .12s;
+}
+.jopen > .jrow > .jtoggle { transform: rotate(90deg); }
+.jkey { color: var(--j-key); }
+.jstr { color: var(--j-str); white-space: pre-wrap; word-break: break-word; }
+.jnum { color: var(--j-num); }
+.jbool { color: var(--j-bool); }
+.jnull { color: var(--j-null); font-style: italic; }
+.jpunct { color: var(--muted); }
+.jsum { color: var(--muted); font-size: .85em; margin-left: 6px; cursor: pointer; }
+.jopen > .jrow > .jsum { display: none; }
+.jnode:not(.jopen) > .jkids, .jnode:not(.jopen) > .jclose { display: none; }
+mark { background: var(--mark); color: inherit; border-radius: 3px; }
+.error {
+  margin: 24px; padding: 14px 16px; border-radius: 10px; color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 10%, transparent); font-family: ui-monospace, monospace;
+}
+.empty { margin: 40px; color: var(--muted); text-align: center; }

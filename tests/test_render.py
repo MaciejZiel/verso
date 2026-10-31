@@ -1,0 +1,57 @@
+from podglad.render import format_json, kind_of, parse_json, preview_payload, render_markdown
+
+
+def test_kind_of():
+    assert kind_of("README.md") == "markdown"
+    assert kind_of("/a/b/NOTES.Markdown") == "markdown"
+    assert kind_of("analiza.json") == "json"
+    assert kind_of("plik.txt") is None
+    assert kind_of(None) is None
+
+
+def test_markdown_table_and_toc():
+    html, toc = render_markdown("# Tytuł\n\n## Sekcja\n\n| a | b |\n| - | - |\n| 1 | 2 |\n")
+    assert "<table>" in html
+    assert "<td>1</td>" in html
+    assert [(level, name) for level, _, name in toc] == [(1, "Tytuł"), (2, "Sekcja")]
+    assert all(anchor for _, anchor, _ in toc)
+
+
+def test_markdown_task_list():
+    html, _ = render_markdown("- [ ] do zrobienia\n- [x] zrobione\n- zwykły\n")
+    assert html.count('type="checkbox"') == 2
+    assert html.count("<input checked") == 1
+    assert "task-list-item" in html
+    assert "[ ]" not in html
+
+
+def test_markdown_code_highlight():
+    html, _ = render_markdown("```python\nx = 1\n```\n")
+    assert 'class="highlight"' in html
+
+
+def test_parse_json_error_has_line():
+    data, error = parse_json('{\n  "a": 1\n  "b": 2\n}')
+    assert data is None
+    assert error is not None and error.startswith("Linia 3")
+
+
+def test_format_json_keeps_polish():
+    assert format_json('{"a":"żółć","b":[1,2]}') == '{\n  "a": "żółć",\n  "b": [\n    1,\n    2\n  ]\n}\n'
+    assert format_json("{zły") is None
+
+
+def test_preview_payload():
+    assert preview_payload("json", '{"a": 1}') == {"kind": "json", "data": {"a": 1}}
+    assert "error" in preview_payload("json", "[")
+    assert preview_payload(None, "x") == {"kind": "none"}
+    assert preview_payload("markdown", "# A")["toc"][0][2] == "A"
+
+
+def test_build_page_has_nonce_csp():
+    from podglad.render import build_page
+
+    page = build_page()
+    assert "script-src 'nonce-" in page
+    assert "window.podglad" in page
+    assert "html.dark .highlight" in page
