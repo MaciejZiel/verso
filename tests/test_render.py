@@ -1,3 +1,5 @@
+import pytest
+
 from verso.render import format_json, kind_of, parse_json, preview_payload, render_markdown
 
 
@@ -208,3 +210,11 @@ def test_outline_lines_match_the_source():
 
     text = "---\ntitle: x\n---\n# One\n\ntext\n\nTwo\n===\n\n```\n# not a heading\n```\n### Three\n"
     assert [(level, title, line) for level, _, title, line in outline(text)] == [(1, "One", 3), (1, "Two", 7), (3, "Three", 13)]
+
+
+def test_footnotes_and_definition_lists():
+    pytest.importorskip("mdit_py_plugins")
+    html, _toc, _features = render_markdown("Tekst[^1].\n\nTermin\n: Opis\n\n[^1]: Przypis.\n")
+    assert '<sup class="footnote-ref"><a href="#fn1" id="fnref1">' in html
+    assert '<li id="fn1" class="footnote-item">' in html
+    assert "<dt" in html and ">Termin</dt>" in html and ">Opis</dd>" in html

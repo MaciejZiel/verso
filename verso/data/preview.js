@@ -141,6 +141,21 @@
   }
   window.addEventListener("scroll", () => requestAnimationFrame(highlightToc), { passive: true });
 
+  // Links inside the document (footnotes, [text](#heading)) scroll the page instead of navigating.
+  document.addEventListener("click", (event) => {
+    const link = event.target.closest && event.target.closest('#content a[href^="#"]');
+    if (!link) return;
+    let target = null;
+    try {
+      target = document.getElementById(decodeURIComponent(link.getAttribute("href").slice(1)));
+    } catch (error) {
+      return; // malformed escape in the href
+    }
+    if (!target) return;
+    event.preventDefault();
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
   // ---------- JSON tree ----------
   // Nodes keep the file's key order: {o: [[key, node], …]} object, {a: [node, …]} array, {v: value} scalar.
   function kindOf(node) {

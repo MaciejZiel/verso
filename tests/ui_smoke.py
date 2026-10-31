@@ -131,6 +131,16 @@ def steps(win):
     win.lookup_action("outline").activate(None)
     yield 300
     check("outline hides", not md.split_view.get_show_sidebar())
+    md.buffer.set_text("[skok](#sekcja-100)\n\n" + long_md)
+    yield 700
+    jump = {}
+    md.webview.evaluate_javascript("window.scrollTo(0, 0); document.querySelector('#content a').click()", -1, None, None, None, None, None)
+    yield 1200
+    md.webview.evaluate_javascript(
+        "String(Math.round(document.getElementById('sekcja-100').getBoundingClientRect().top))",
+        -1, None, None, None, lambda w, r, _u: jump.setdefault("top", w.evaluate_javascript_finish(r).to_string()), None)
+    yield 300
+    check("link to a heading scrolls the preview", jump.get("top") is not None and 0 <= int(jump["top"]) <= 40)
     md.set_mode("split")
     md.buffer.set_modified(False)
     # podglądy formatów: CSV, YAML, XML, HTML (bez skryptów), SVG

@@ -107,6 +107,16 @@ html.width-full #layout { justify-content: stretch; }
 .markdown table.front-matter { font-size: .85em; color: var(--muted); margin-bottom: 1.6em; }
 .markdown table.front-matter th { background: transparent; }
 .markdown pre.front-matter { font-size: .85em; color: var(--muted); }
+.markdown dl { margin: 0 0 1em; }
+.markdown dt { font-weight: 600; margin-top: .6em; }
+.markdown dd { margin: .2em 0 0 1.6em; }
+.markdown sup.footnote-ref { font-size: .75em; line-height: 0; }
+.markdown sup.footnote-ref a { padding: 0 .1em; }
+.markdown hr.footnotes-sep { margin-top: 2.4em; }
+.markdown section.footnotes { font-size: .88em; color: var(--muted); }
+.markdown section.footnotes p { margin: 0 0 .4em; }
+.markdown .footnote-backref { font-family: system-ui, sans-serif; }
+.markdown [id] { scroll-margin-top: 16px; }
 
 /* ---------- JSON ---------- */
 #json-bar {

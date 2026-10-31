@@ -1,7 +1,8 @@
 """Markdown → HTML with markdown-it-py.
 
 On top of CommonMark: tables, strikethrough, autolinks, task lists, heading anchors with a table
-of contents, YAML front matter, math ($…$, $$…$$) for KaTeX, ```mermaid diagrams, highlighted code.
+of contents, YAML front matter, math ($…$, $$…$$) for KaTeX, ```mermaid diagrams, highlighted code,
+and, when mdit-py-plugins is installed, footnotes and definition lists.
 Every block element carries data-line (its first source line) for synchronized scrolling."""
 
 import html
@@ -14,6 +15,12 @@ from pygments import highlight
 from pygments.formatters import HtmlFormatter
 from pygments.lexers import get_lexer_by_name
 from pygments.util import ClassNotFound
+
+try:
+    from mdit_py_plugins.deflist import deflist_plugin
+    from mdit_py_plugins.footnote import footnote_plugin
+except ImportError:  # optional: without it footnotes and definition lists stay plain text
+    deflist_plugin = footnote_plugin = None
 
 _FRONT_MATTER = re.compile(r"\A---[ \t]*\n(.*?)\n(?:---|\.\.\.)[ \t]*(?:\n|\Z)", re.S)
 _TASK = re.compile(r"^\[([ xX])\]\s")
@@ -159,6 +166,8 @@ def _decorate(state):
 def _build():
     md = MarkdownIt("commonmark", {"html": True, "linkify": True, "typographer": False})
     md.enable(["table", "strikethrough", "linkify"])
+    if footnote_plugin is not None:
+        md.use(footnote_plugin).use(deflist_plugin)
     md.inline.ruler.before("escape", "math_inline", _math_inline)
     md.block.ruler.before("fence", "math_block", _math_block, {"alt": ["paragraph", "reference", "blockquote", "list"]})
     md.core.ruler.push("verso_decorate", _decorate)

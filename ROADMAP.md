@@ -28,7 +28,7 @@ Status legend: [ ] todo, [~] in progress, [x] done.
 
 - [x] Move Markdown rendering to markdown-it-py so every block carries its source line
 - [x] Synchronized scrolling between editor and preview in split mode
-- [~] Markdown extras: front matter, KaTeX math, Mermaid diagrams done; footnotes and definition lists need mdit-py-plugins (vendored, offline, sandboxed by CSP)
+- [x] Markdown extras: front matter, KaTeX math, Mermaid diagrams, footnotes and definition lists (mdit-py-plugins, optional outside the Flatpak)
 - [x] Preview themes: GitHub, Document (serif, print-like), Reader (large, centered); content width and preview font
 - [x] CSV / TSV: table with sticky header, column sorting, search, delimiter detection
 - [x] YAML / TOML / XML: the same tree view as JSON
