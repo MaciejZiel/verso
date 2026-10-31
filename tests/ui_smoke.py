@@ -32,7 +32,7 @@ def shot(win, path):
     win.get_renderer().render_texture(snap.to_node(), None).save_to_png(path)
 
 def unlabeled_buttons(widget):
-    """Icon-only buttons with neither a tooltip nor an accessible label (a screen reader says just "button")."""
+    """Icon-only buttons without a tooltip (GTK reads the tooltip to screen readers when there is no label)."""
     found = []
     if isinstance(widget, (Gtk.SpinButton, Gtk.PopoverMenu)) or type(widget).__name__ == "AdwBackButton":
         return found  # GTK and libadwaita label the buttons inside these themselves
@@ -136,6 +136,12 @@ def steps(win):
         if isinstance(controller, Gtk.EventControllerKey):
             controller.emit("key-pressed", Gdk.KEY_Escape, 0, 0)
     check("Escape returns to the editor", win.get_focus() is md.view)
+    md.focus_outline()
+    win.lookup_action("outline").activate(None)
+    yield 300
+    check("hiding the focused outline returns focus to the editor", win.get_focus() is md.view)
+    win.lookup_action("outline").activate(None)
+    yield 300
     selected = md.outline.list.get_selected_row()
     check("outline highlights section in view", selected is not None and 88 <= selected.get_index() <= 92)
     md.outline.list.emit("row-activated", md.outline.list.get_row_at_index(10))
@@ -147,6 +153,10 @@ def steps(win):
         -1, None, None, None, lambda w, r, _u: js_top.setdefault("v", w.evaluate_javascript_finish(r).to_string()), None)
     yield 300
     check("outline jumps editor to heading", cursor.get_line() == 40)
+    md.outline.list.emit("row-activated", md.outline.list.get_row_at_index(119))
+    yield 700
+    selected = md.outline.list.get_selected_row()
+    check("last heading stays highlighted at the end", selected is not None and selected.get_index() == 119)
     check("outline: preview follows and hides its toc", js_top.get("v") in ("true|Sekcja 9", "true|Sekcja 10"))
     md.set_mode("preview")
     md.outline.list.emit("row-activated", md.outline.list.get_row_at_index(70))

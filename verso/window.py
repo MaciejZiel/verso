@@ -175,6 +175,8 @@ class Window(Adw.ApplicationWindow):
         settings.get().set_boolean("show-outline", value.get_boolean())
         if value.get_boolean() and self.current:
             self.current.focus_outline()  # F9 also brings keyboard users to the headings
+        elif self.current and self.get_focus() is not None and self.get_focus().is_ancestor(self.current.outline):
+            self.current.focus_text()  # the focused row is being hidden
 
     def _install_drop_target(self):
         target = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)

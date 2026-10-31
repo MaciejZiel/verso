@@ -263,7 +263,11 @@ class Application(Adw.Application):
         if action:
             group, _sep, name = action.partition(".")
             target = self if group == "app" else window
-            GLib.timeout_add(900, lambda: target.lookup_action(name).activate(None) and False)
+            found = target.lookup_action(name)
+            if found is None:
+                print(f"VERSO_ACTION: no action {action!r}", file=sys.stderr)
+            else:
+                GLib.timeout_add(900, lambda: found.activate(None) and False)
         dark = os.environ.get("VERSO_DARK")  # 1: dark, 0: light, unset: follow the system
         if dark:
             scheme = Adw.ColorScheme.FORCE_LIGHT if dark == "0" else Adw.ColorScheme.FORCE_DARK

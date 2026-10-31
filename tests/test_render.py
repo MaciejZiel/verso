@@ -218,3 +218,13 @@ def test_footnotes_and_definition_lists():
     assert '<sup class="footnote-ref"><a href="#fn1" id="fnref1">' in html
     assert '<li id="fn1" class="footnote-item">' in html
     assert "<dt" in html and ">Termin</dt>" in html and ">Opis</dd>" in html
+
+
+def test_footnote_headings_and_ids_stay_out_of_the_way():
+    pytest.importorskip("mdit_py_plugins")
+    from verso.md import outline
+
+    text = "Tekst[^1].\n\n[^1]: # Notka\n\n# fn1\n\n# B\n"
+    assert [(title, line) for _, _, title, line in outline(text)] == [("fn1", 4), ("B", 6)]
+    html, _toc, _features = render_markdown(text)
+    assert html.count('id="fn1"') == 1  # the heading got another anchor

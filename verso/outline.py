@@ -40,6 +40,9 @@ class Outline(Gtk.Box):
         entries = [tuple(entry) for entry in entries]
         if entries == self._entries:
             return
+        if [entry[:3] for entry in entries] == [entry[:3] for entry in self._entries]:
+            self._entries = entries  # only line numbers moved (typing above a heading): keep the rows and the scroll
+            return
         self._entries = entries
         self._current = -1
         self.list.remove_all()

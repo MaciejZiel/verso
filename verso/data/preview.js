@@ -118,11 +118,6 @@
         a.href = "#" + id;
         a.dataset.target = id;
         a.style.paddingInlineStart = 6 + (level - minLevel) * 12 + "px";
-        a.addEventListener("click", (event) => {
-          event.preventDefault();
-          const target = document.getElementById(id);
-          if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
-        });
         toc.append(a);
       }
       highlightToc();
@@ -141,9 +136,9 @@
   }
   window.addEventListener("scroll", () => requestAnimationFrame(highlightToc), { passive: true });
 
-  // Links inside the document (footnotes, [text](#heading)) scroll the page instead of navigating.
+  // Links inside the document (footnotes, [text](#heading), the TOC) scroll the page instead of navigating.
   document.addEventListener("click", (event) => {
-    const link = event.target.closest && event.target.closest('#content a[href^="#"]');
+    const link = event.target.closest && event.target.closest('#content a[href^="#"], #toc a');
     if (!link) return;
     let target = null;
     try {

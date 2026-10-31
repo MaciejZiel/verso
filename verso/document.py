@@ -111,7 +111,7 @@ class Document(Gtk.Box):
         self.outline = Outline()
         self.outline.connect("heading-activated", lambda _o, line: self.go_to_heading(line))
         outline_keys = Gtk.EventControllerKey()
-        outline_keys.connect("key-pressed", lambda _c, keyval, _code, _state: keyval == Gdk.KEY_Escape and self._focus_text())
+        outline_keys.connect("key-pressed", lambda _c, keyval, _code, _state: keyval == Gdk.KEY_Escape and self.focus_text())
         self.outline.add_controller(outline_keys)
         self.split_view = Adw.OverlaySplitView(
             sidebar=self.outline, content=self.paned, show_sidebar=False, min_sidebar_width=180, max_sidebar_width=280
@@ -907,8 +907,15 @@ class Document(Gtk.Box):
         if self.mode == "preview":
             line = self.buffer.get_line_count() if self._preview_line < 0 else self._preview_line
         else:
-            it, _top = self.view.get_line_at_y(int(self.source_scroller.get_vadjustment().get_value()) + 8)
+            adjustment = self.source_scroller.get_vadjustment()
+            it, _top = self.view.get_line_at_y(int(adjustment.get_value()) + 8)
             line = it.get_line()
+            if adjustment.get_value() + adjustment.get_page_size() >= adjustment.get_upper() - 1:
+                # At the end the last headings cannot reach the top: follow the cursor when it is in view.
+                cursor = self.buffer.get_iter_at_mark(self.buffer.get_insert())
+                cursor_y, _height = self.view.get_line_yrange(cursor)
+                if cursor_y >= adjustment.get_value():
+                    line = max(line, cursor.get_line())
         self.outline.set_current_line(int(line))
 
     def focus_outline(self):
@@ -918,7 +925,7 @@ class Document(Gtk.Box):
             if row is not None:
                 row.grab_focus()
 
-    def _focus_text(self):
+    def focus_text(self):
         (self.webview if self.mode == "preview" else self.view).grab_focus()
         return True
 

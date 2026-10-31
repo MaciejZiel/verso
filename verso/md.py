@@ -24,6 +24,7 @@ except ImportError:  # optional: without it footnotes and definition lists stay 
 
 _FRONT_MATTER = re.compile(r"\A---[ \t]*\n(.*?)\n(?:---|\.\.\.)[ \t]*(?:\n|\Z)", re.S)
 _TASK = re.compile(r"^\[([ xX])\]\s")
+_FOOTNOTE_ID = re.compile(r"fn(ref)?\d+(:\d+)?")  # ids the footnote plugin gives its links and notes
 _FORMATTER = HtmlFormatter(nowrap=True)
 
 
@@ -100,7 +101,7 @@ def _slug(text, used):
     text = unicodedata.normalize("NFKC", text).strip().lower()
     slug = re.sub(r"[^\w\- ]", "", text).replace(" ", "-") or "section"
     candidate, n = slug, 1
-    while candidate in used:
+    while candidate in used or _FOOTNOTE_ID.fullmatch(candidate):
         candidate = f"{slug}-{n}"
         n += 1
     used.add(candidate)
@@ -141,10 +142,13 @@ def _decorate(state):
     """Core rule: line numbers on blocks, heading ids + TOC, task list checkboxes."""
     tokens = state.tokens
     used, toc = set(), []
+    in_footnote = 0  # footnote bodies are moved to the end, so their headings stay out of the TOC
     for i, token in enumerate(tokens):
+        if token.type in ("footnote_open", "footnote_close"):
+            in_footnote += 1 if token.type == "footnote_open" else -1
         if token.block and token.nesting == 1 and token.map:
             token.attrSet("data-line", str(token.map[0]))
-        if token.type == "heading_open" and i + 1 < len(tokens):
+        if token.type == "heading_open" and i + 1 < len(tokens) and not in_footnote:
             title = "".join(child.content for child in (tokens[i + 1].children or []) if child.type in ("text", "code_inline"))
             anchor = _slug(title, used)
             token.attrSet("id", anchor)
