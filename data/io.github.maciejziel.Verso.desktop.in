@@ -1,13 +1,13 @@
 [Desktop Entry]
 Type=Application
-Name=Podgląd
+Name=Verso
 GenericName=Edytor tekstu z podglądem
 Comment=Edycja i podgląd plików Markdown i JSON
 Exec=@BIN@ %U
-Icon=pl.mzielinski.Podglad
+Icon=io.github.maciejziel.Verso
 Terminal=false
 StartupNotify=true
-StartupWMClass=pl.mzielinski.Podglad
+StartupWMClass=io.github.maciejziel.Verso
 Categories=GNOME;GTK;Utility;TextEditor;
 Keywords=markdown;json;tekst;edytor;podgląd;md;
 MimeType=text/markdown;text/x-markdown;application/json;text/plain;text/x-python;application/x-yaml;text/csv;

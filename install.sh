@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# Instaluje Podgląd dla bieżącego użytkownika (bez sudo) i ustawia go jako domyślny dla .md i .json.
+# Instaluje Verso dla bieżącego użytkownika (bez sudo) i ustawia go jako domyślny dla .md i .json.
 set -euo pipefail
 REPO="$(cd "$(dirname "$0")" && pwd)"
-APP_ID=pl.mzielinski.Podglad
-BIN="$HOME/.local/bin/podglad"
+APP_ID=io.github.maciejziel.Verso
+BIN="$HOME/.local/bin/verso"
 APPS="$HOME/.local/share/applications"
 ICONS="$HOME/.local/share/icons/hicolor"
 
 mkdir -p "$(dirname "$BIN")" "$APPS" "$ICONS/scalable/apps" "$ICONS/symbolic/apps"
-ln -sfn "$REPO/bin/podglad" "$BIN"
+ln -sfn "$REPO/bin/verso" "$BIN"
 sed "s|@BIN@|$BIN|g" "$REPO/data/$APP_ID.desktop.in" > "$APPS/$APP_ID.desktop"
 cp "$REPO/data/icons/hicolor/scalable/apps/$APP_ID.svg" "$ICONS/scalable/apps/"
 cp "$REPO/data/icons/hicolor/symbolic/apps/$APP_ID-symbolic.svg" "$ICONS/symbolic/apps/"

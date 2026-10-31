@@ -1,4 +1,4 @@
-# Podgląd
+# Verso
 
 Edytor tekstu w stylu Edytora tekstu GNOME (GTK4, libadwaita, GtkSourceView), z podglądem:
 
@@ -18,7 +18,7 @@ Python, GTK4, libadwaita i `python3-markdown` są w systemie.
 ## Uruchomienie i instalacja
 
 ```
-./bin/podglad plik.md          # z repozytorium
+./bin/verso plik.md          # z repozytorium
 ./install.sh                   # skrót w menu, ikona, domyślny dla .md i .json (bez sudo)
 ./install.sh --no-default      # bez zmiany domyślnych programów
 ./uninstall.sh                 # usuwa i przywraca Edytor tekstu
@@ -30,4 +30,4 @@ Python, GTK4, libadwaita i `python3-markdown` są w systemie.
 guardrun -- python3 -m pytest tests -q
 ```
 
-`PODGLAD_SCREENSHOT=out.png ./bin/podglad plik.md` zapisuje zrzut okna i kończy (opcjonalnie `PODGLAD_MODE=split`, `PODGLAD_DARK=1`).
+`VERSO_SCREENSHOT=out.png ./bin/verso plik.md` zapisuje zrzut okna i kończy (opcjonalnie `VERSO_MODE=split`, `VERSO_DARK=1`).

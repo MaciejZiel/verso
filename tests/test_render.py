@@ -1,4 +1,4 @@
-from podglad.render import format_json, kind_of, parse_json, preview_payload, render_markdown
+from verso.render import format_json, kind_of, parse_json, preview_payload, render_markdown
 
 
 def test_kind_of():
@@ -49,11 +49,11 @@ def test_preview_payload():
 
 
 def test_build_page_has_nonce_csp():
-    from podglad.render import build_page
+    from verso.render import build_page
 
     page = build_page()
     assert "script-src 'nonce-" in page
-    assert "window.podglad" in page
+    assert "window.verso" in page
     assert "html.dark .highlight" in page
 
 
@@ -67,7 +67,7 @@ def test_jsonc_has_no_json_preview():
 
 
 def test_shorten_home():
-    from podglad.render import shorten_home
+    from verso.render import shorten_home
 
     assert shorten_home("/home/ja/Rinvo", "/home/ja") == "~/Rinvo"
     assert shorten_home("/home/ja", "/home/ja") == "~"

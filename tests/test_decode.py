@@ -1,4 +1,4 @@
-from podglad.document import Document
+from verso.document import Document
 
 
 def test_utf8_and_bom():

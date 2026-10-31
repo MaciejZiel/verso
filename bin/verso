@@ -1,10 +1,10 @@
 #!/usr/bin/python3
-# Uruchamia Podgląd z katalogu repozytorium (bez instalowania pakietu).
+# Uruchamia Verso z katalogu repozytorium (bez instalowania pakietu).
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from podglad.app import main  # noqa: E402
+from verso.app import main  # noqa: E402
 
 sys.exit(main())

@@ -11,7 +11,7 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
 from .window import Window  # noqa: E402
 
-APP_ID = "pl.mzielinski.Podglad"
+APP_ID = "io.github.maciejziel.Verso"
 VERSION = "1.0"
 ZOOM_STEPS = (0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.25, 1.5, 1.75, 2.0, 2.5, 3.0)
 
@@ -39,7 +39,7 @@ SHORTCUTS = {
 class Application(Adw.Application):
     def __init__(self):
         super().__init__(application_id=APP_ID, flags=Gio.ApplicationFlags.HANDLES_OPEN)
-        GLib.set_application_name("Podgląd")
+        GLib.set_application_name("Verso")
         self.zoom = 1.0
         self._css = Gtk.CssProvider()
         self.add_main_option("new-window", 0, GLib.OptionFlags.NONE, GLib.OptionArg.NONE, "Otwórz nowe okno", None)
@@ -116,8 +116,8 @@ class Application(Adw.Application):
     def _apply_css(self):
         family, size = self._monospace_font()
         self._css.load_from_string(
-            f'.podglad-source {{ font-family: "{family}", monospace; font-size: {size * self.zoom:.1f}pt; }}\n'
-            ".podglad-search { padding: 6px 8px; border-bottom: 1px solid alpha(currentColor, 0.12); }"
+            f'.verso-source {{ font-family: "{family}", monospace; font-size: {size * self.zoom:.1f}pt; }}\n'
+            ".verso-search { padding: 6px 8px; border-bottom: 1px solid alpha(currentColor, 0.12); }"
         )
 
     def change_zoom(self, direction):
@@ -138,7 +138,7 @@ class Application(Adw.Application):
 
     def _about(self):
         dialog = Adw.AboutDialog(
-            application_name="Podgląd",
+            application_name="Verso",
             application_icon=APP_ID,
             developer_name="Maciej Zieliński",
             version=VERSION,
@@ -168,15 +168,15 @@ class Application(Adw.Application):
     # ---------- zrzut ekranu do testów ----------
 
     def _maybe_screenshot(self, window):
-        """PODGLAD_SCREENSHOT=plik.png: po chwili zapisuje widok okna i kończy (do weryfikacji)."""
-        path = os.environ.get("PODGLAD_SCREENSHOT")
+        """VERSO_SCREENSHOT=plik.png: po chwili zapisuje widok okna i kończy (do weryfikacji)."""
+        path = os.environ.get("VERSO_SCREENSHOT")
         if not path or getattr(self, "_shot_scheduled", False):
             return
         self._shot_scheduled = True
-        mode = os.environ.get("PODGLAD_MODE")
+        mode = os.environ.get("VERSO_MODE")
         if mode:
             GLib.timeout_add(800, lambda: window.current and window.current.set_mode(mode) and False)
-        if os.environ.get("PODGLAD_DARK"):
+        if os.environ.get("VERSO_DARK"):
             Adw.StyleManager.get_default().set_color_scheme(Adw.ColorScheme.FORCE_DARK)
 
         def shoot():
@@ -191,7 +191,7 @@ class Application(Adw.Application):
             self.quit()
             return GLib.SOURCE_REMOVE
 
-        GLib.timeout_add(int(os.environ.get("PODGLAD_DELAY", "2500")), shoot)
+        GLib.timeout_add(int(os.environ.get("VERSO_DELAY", "2500")), shoot)
 
 
 def main():

@@ -7,13 +7,12 @@ from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 from . import render
 from .document import Document
 
-MODE_LABELS = {"edit": "Edycja", "split": "Obok siebie", "preview": "Podgląd"}
 TEXT_FILTER_SUFFIXES = ("*.md", "*.markdown", "*.json", "*.txt", "*.yaml", "*.yml", "*.py", "*.csv", "*.toml", "*.html", "*.css", "*.js")
 
 
 class Window(Adw.ApplicationWindow):
     def __init__(self, app):
-        super().__init__(application=app, default_width=980, default_height=720, title="Podgląd")
+        super().__init__(application=app, default_width=980, default_height=720, title="Verso")
         self.set_icon_name(app.get_application_id())
 
         self.tab_view = Adw.TabView()
@@ -22,7 +21,7 @@ class Window(Adw.ApplicationWindow):
         self.tab_view.connect("notify::n-pages", self._on_pages_changed)
         self.tab_bar = Adw.TabBar(view=self.tab_view, autohide=True)
 
-        self.window_title = Adw.WindowTitle(title="Podgląd")
+        self.window_title = Adw.WindowTitle(title="Verso")
         header = Adw.HeaderBar(title_widget=self.window_title)
         header.pack_start(self._build_open_button())
         header.pack_start(Gtk.Button(icon_name="tab-new-symbolic", tooltip_text="Nowa karta (Ctrl+T)", action_name="win.new-tab"))
@@ -92,7 +91,7 @@ class Window(Adw.ApplicationWindow):
         menu.append_section(None, section)
         section = Gio.Menu()
         section.append("Skróty klawiszowe", "app.shortcuts")
-        section.append("O programie Podgląd", "app.about")
+        section.append("O programie Verso", "app.about")
         menu.append_section(None, section)
         return Gtk.MenuButton(icon_name="open-menu-symbolic", menu_model=menu, tooltip_text="Menu główne", primary=True)
 
@@ -343,7 +342,7 @@ class Window(Adw.ApplicationWindow):
             return
         self.window_title.set_title(title)
         self.window_title.set_subtitle(doc.subtitle)
-        self.set_title(f"{doc.title} – Podgląd")
+        self.set_title(f"{doc.title} – Verso")
         self.mode_group.set_visible(doc.kind is not None)
         self._syncing_mode = True
         self.mode_group.set_active_name(doc.mode)

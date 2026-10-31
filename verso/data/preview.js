@@ -1,5 +1,5 @@
 "use strict";
-// Strona podglądu. Python wywołuje window.podglad.update(payload) i window.podglad.setDark(bool).
+// Strona podglądu. Python wywołuje window.verso.update(payload) i window.verso.setDark(bool).
 
 (function () {
   const root = document.getElementById("root");
@@ -278,7 +278,7 @@
     draw();
   }
 
-  window.podglad = {
+  window.verso = {
     update(payload) {
       const y = window.scrollY;
       if (payload.kind === "markdown") renderMarkdown(payload);

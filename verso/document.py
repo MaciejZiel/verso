@@ -87,7 +87,7 @@ class Document(Gtk.Box):
         self.view.set_bottom_margin(120)
         self.view.set_left_margin(6)
         self.view.set_right_margin(12)
-        self.view.add_css_class("podglad-source")
+        self.view.add_css_class("verso-source")
 
         self.source_scroller = Gtk.ScrolledWindow(hexpand=True, vexpand=True)
         self.source_scroller.set_child(self.view)
@@ -155,7 +155,7 @@ class Document(Gtk.Box):
         self.replace_revealer = Gtk.Revealer(child=replace_row)
         self.replace_toggle.bind_property("active", self.replace_revealer, "reveal-child", GObject.BindingFlags.SYNC_CREATE)
 
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, css_classes=["podglad-search"])
+        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6, css_classes=["verso-search"])
         box.append(row)
         box.append(self.replace_revealer)
         self.search_revealer = Gtk.Revealer(child=box, transition_type=Gtk.RevealerTransitionType.SLIDE_DOWN)
@@ -356,7 +356,7 @@ class Document(Gtk.Box):
             self.buffer.set_style_scheme(scheme)
         self.webview.set_background_color(_rgba("#1e1e1e" if dark else "#ffffff"))
         if self._preview_ready:
-            self._run_js(f"window.podglad.setDark({json.dumps(dark)})")
+            self._run_js(f"window.verso.setDark({json.dumps(dark)})")
 
     def format_json(self):
         if self.kind != "json":
@@ -416,7 +416,7 @@ class Document(Gtk.Box):
             return GLib.SOURCE_REMOVE
         text = self.buffer.get_text(self.buffer.get_start_iter(), self.buffer.get_end_iter(), True)
         payload = render.preview_payload(self.kind, text)
-        self._run_js(f"window.podglad.update({json.dumps(payload, ensure_ascii=False)})")
+        self._run_js(f"window.verso.update({json.dumps(payload, ensure_ascii=False)})")
         return GLib.SOURCE_REMOVE
 
     def _run_js(self, script):
