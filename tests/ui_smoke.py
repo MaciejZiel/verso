@@ -4,6 +4,8 @@ Run: GSETTINGS_SCHEMA_DIR=.dev/schemas GSETTINGS_BACKEND=memory tools/headless.s
 (bin/verso creates .dev/schemas on first start.)
 """
 import os, sys, tempfile
+# Drafts and session.json go to a throwaway folder, never to the real ~/.local/share/verso.
+os.environ["XDG_DATA_HOME"] = tempfile.mkdtemp(prefix="verso-ui-data-")
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import gi
@@ -147,14 +149,16 @@ def steps(win):
         dialog.close()  # Anuluj
     yield 400
     check("cancel keeps tab", win.tab_view.get_n_pages() == 2)
+    from verso import settings as _settings
+    _settings.get().set_boolean("restore-session", False)  # without drafts, quitting must ask
     app.activate_action("quit", None)
     yield 500
     check("ctrl+q asks about unsaved", win.get_visible_dialog() is not None and win.get_visible())
     if win.get_visible_dialog():
         win.get_visible_dialog().close()
     yield 300
+    _settings.get().set_boolean("restore-session", True)
     js.buffer.set_modified(False)
-    from verso import settings as _settings
     from gi.repository import Gdk
     # automatyczne nawiasy: "(" wstawia "()", ")" przeskakuje, Backspace usuwa parę
     scratch = win.new_document()
@@ -200,21 +204,38 @@ def steps(win):
         -1, None, None, None, lambda w, r, _u: raw.setdefault("text", w.evaluate_javascript_finish(r).to_string()), None)
     yield 400
     check("raw json keeps order", raw.get("text") == '{\n  "z": 1,\n  "10": [\n    true\n  ],\n  "a": {}\n}')
-    # zamknięcie okna z niezapisanym dokumentem: po „Odrzuć” sesja i tak się zapisuje
+    # szkice: zamknięcie okna z niezapisanymi zmianami nie pyta, a sesja wraca z tekstem
+    import json as _json
+    from verso import session as _session
     win.tab_view.set_selected_page(win.tab_view.get_page(js))
+    scratch.buffer.set_text("niezapisany szkic")  # nowy dokument bez pliku
+    yield 1800  # autozapis
+    check("draft written", scratch.draft_id is not None and _session.read_draft(scratch.draft_id) == "niezapisany szkic")
     app.hold()
     win.close()
-    yield 400
-    dialog = win.get_visible_dialog()
-    check("close asks about unsaved", dialog is not None)
-    while dialog is not None:
-        dialog.emit("response", "discard")
-        dialog.force_close()
-        yield 300
-        dialog = win.get_visible_dialog()
-    yield 300
-    uris = _settings.get().get_strv("session-uris")
-    check("session saved after discard", len(uris) == 2 and uris[1].endswith("data.json") and _settings.get().get_int("session-selected") == 1)
+    yield 1500  # longer than the session save delay: a late timer must not wipe the session
+    check("closing last window does not ask", win.get_visible_dialog() is None and not win.get_visible())
+    data = _json.loads((_session.data_dir() / "session.json").read_text())
+    entries = data["documents"]
+    js_entry = next((e for e in entries if e["uri"] and e["uri"].endswith("data.json")), None)
+    check("session has drafts", js_entry is not None and js_entry["draft"] and any(e["uri"] is None and e["draft"] for e in entries))
+    new_win = app._new_window()
+    app._restore_session(new_win)
+    yield 800
+    docs = new_win.documents
+    restored_js = next((d for d in docs if d.file and d.file.get_basename() == "data.json"), None)
+    restored_draft = next((d for d in docs if d.file is None), None)
+    check("drafts restored", restored_js is not None and restored_js.modified
+          and restored_js.buffer.get_property("text") == '{"z": 1, "10": [true], "a": {}}'
+          and restored_draft is not None and restored_draft.buffer.get_property("text") == "niezapisany szkic")
+    check("selected tab restored", new_win.current is restored_js)
+    # zapis szkicu usuwa plik szkicu
+    restored_js.save()
+    yield 600
+    check("saving removes draft", restored_js.draft_id is None and not restored_js.modified
+          and Path(f"{S}/e2e/data.json").read_text().startswith('{"z": 1'))
+    for doc in new_win.documents:
+        doc.buffer.set_modified(False)
     app.release()
     app.quit()
 

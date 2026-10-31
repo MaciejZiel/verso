@@ -13,11 +13,12 @@ gi.require_version("WebKit", "6.0")
 gi.require_version("Spelling", "1")
 from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk, GtkSource, Spelling, WebKit  # noqa: E402
 
-from . import render, settings  # noqa: E402
+from . import render, session, settings  # noqa: E402
 from .preferences import resolve_scheme  # noqa: E402
 from .statusbar import StatusBar  # noqa: E402
 
 PREVIEW_DELAY_MS = 250
+AUTOSAVE_DELAY_MS = 1500
 
 # Windows code pages first: they are supersets of the ISO ones for printable text, and files from
 # Windows are far more common. GtkSourceView's own order makes cp1250 Polish text look broken.
@@ -71,6 +72,8 @@ class Document(Gtk.Box):
         self._save_encoding = None  # set when the user picks another encoding for saving
         self._save_newline = None
         self._indent_override = None  # (insert_spaces, width) chosen in the status bar for this document
+        self.draft_id = None  # set while unsaved text is kept in the drafts folder
+        self._autosave_timer = 0
 
         self._build_banner()
         self._build_search()
@@ -125,7 +128,7 @@ class Document(Gtk.Box):
         pairs.connect("key-pressed", self._on_editor_key)
         self.view.add_controller(pairs)
 
-        self.buffer.connect("modified-changed", lambda *_: self.emit("state-changed"))
+        self.buffer.connect("modified-changed", self._on_modified_changed)
         self.buffer.connect("changed", self._on_buffer_changed)
 
         # Sprawdzanie pisowni jak w Edytorze tekstu (libspelling, słownik z systemu).
@@ -585,6 +588,8 @@ class Document(Gtk.Box):
     def _on_buffer_changed(self, *_):
         self._change_serial += 1
         if not self._loading:
+            self._schedule_autosave()
+        if not self._loading:
             self._schedule_preview()
 
     def _schedule_preview(self, immediate=False):
@@ -736,8 +741,89 @@ class Document(Gtk.Box):
             count = self.search_context.replace_all(self.replace_entry.get_text(), -1)
             self._toast(ngettext("Replaced {count} match", "Replaced {count} matches", count).format(count=count))
 
+    # ---------- drafts ----------
+
+    def _on_modified_changed(self, *_):
+        if not self.buffer.get_modified():
+            self.discard_draft()  # saved or reverted: the draft is no longer needed
+        self.emit("state-changed")
+
+    def _schedule_autosave(self):
+        if self._autosave_timer:
+            GLib.source_remove(self._autosave_timer)
+        self._autosave_timer = GLib.timeout_add(AUTOSAVE_DELAY_MS, self._autosave)
+
+    def _autosave(self):
+        self._autosave_timer = 0
+        self.flush_draft()
+        return GLib.SOURCE_REMOVE
+
+    def flush_draft(self):
+        """Writes the unsaved text to the drafts folder right now (or removes a draft that is not needed)."""
+        if self._autosave_timer:
+            GLib.source_remove(self._autosave_timer)
+            self._autosave_timer = 0
+        if not self.modified:
+            self.discard_draft()
+            return
+        if self.draft_id is None:
+            self.draft_id = session.new_draft_id()
+            self.emit("state-changed")  # the session has to learn about the new draft
+        text = self.buffer.get_text(self.buffer.get_start_iter(), self.buffer.get_end_iter(), True)
+        try:
+            session.write_draft(self.draft_id, text)
+        except OSError as error:
+            self._toast(_("Could not keep a backup of unsaved changes: {error}").format(error=error.strerror))
+
+    def discard_draft(self):
+        if self.draft_id is not None:
+            session.delete_draft(self.draft_id)
+            self.draft_id = None
+
+    def restore_draft(self, file, text, draft_id, encoding=None, newline=None):
+        """Brings back a document from the last session together with its unsaved text."""
+        self.file = file
+        if file is not None:
+            self.source_file.set_location(file)
+        if encoding:
+            self._save_encoding = GtkSource.Encoding.get_from_charset(encoding)
+        if newline in ("LF", "CR_LF", "CR"):
+            self._save_newline = getattr(GtkSource.NewlineType, newline)
+        self._loading = True
+        self.buffer.begin_irreversible_action()
+        self.buffer.set_text(text)
+        self.buffer.end_irreversible_action()
+        self._loading = False
+        self.draft_id = draft_id
+        self.buffer.set_modified(True)
+        self.buffer.place_cursor(self.buffer.get_start_iter())
+        self._set_kind_from_file()
+        self.set_mode(self._default_mode())
+        if file is not None:
+            self._etag = self._query_etag(file)
+            self._watch_file()
+        self._schedule_preview(immediate=True)
+        self.emit("state-changed")
+
+    def session_entry(self):
+        """What session.json needs to bring this document back; None for an empty, untouched draft."""
+        if self.file is None and not self.modified:
+            return None
+        if self.modified and self.draft_id is None:
+            self.flush_draft()
+        newline = {GtkSource.NewlineType.LF: "LF", GtkSource.NewlineType.CR_LF: "CR_LF", GtkSource.NewlineType.CR: "CR"}[self.newline_type]
+        return {
+            "uri": self.file.get_uri() if self.file else None,
+            "draft": self.draft_id if self.modified else None,
+            "encoding": self.encoding.get_charset(),
+            "newline": newline,
+        }
+
     def shutdown(self):
         """Sprzątanie po zamknięciu karty: monitor pliku, timery i proces WebKit."""
+        if self._autosave_timer:
+            GLib.source_remove(self._autosave_timer)
+            self._autosave_timer = 0
         settings.get().disconnect(self._settings_handler)
         self.statusbar.shutdown()
         Adw.StyleManager.get_default().disconnect(self._style_handler)

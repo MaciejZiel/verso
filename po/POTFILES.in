@@ -7,3 +7,4 @@ verso/render.py
 verso/window.py
 verso/preferences.py
 verso/statusbar.py
+verso/session.py

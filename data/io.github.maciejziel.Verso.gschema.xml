@@ -19,14 +19,6 @@
       <summary>Restore session</summary>
       <description>Reopen the documents from the last session when Verso starts without files.</description>
     </key>
-    <key name="session-uris" type="as">
-      <default>[]</default>
-      <summary>Documents of the last session</summary>
-    </key>
-    <key name="session-selected" type="i">
-      <default>0</default>
-      <summary>Selected tab of the last session</summary>
-    </key>
     <!-- Editor -->
     <key name="zoom" type="d">
       <default>1.0</default>

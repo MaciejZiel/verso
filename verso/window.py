@@ -181,11 +181,18 @@ class Window(Adw.ApplicationWindow):
 
     def _add_document(self, doc):
         doc.connect("state-changed", self._on_doc_state)
+        doc.connect("state-changed", lambda *_: self.get_application() and self.get_application().schedule_session_save())
         doc.connect("open-file", lambda _d, f: self.open_file(f))
         doc.set_zoom(self.get_application().zoom)
         page = self.tab_view.append(doc)
         self.tab_view.set_selected_page(page)
         self._on_doc_state(doc)
+        return doc
+
+    def restore_draft(self, file, text, draft_id, encoding=None, newline=None):
+        current = self.current
+        doc = current if current is not None and current.is_blank else self._add_document(Document())
+        doc.restore_draft(file, text, draft_id, encoding, newline)
         return doc
 
     def new_document(self):
@@ -274,8 +281,11 @@ class Window(Adw.ApplicationWindow):
 
         def finish(ok):
             if ok:
+                doc.discard_draft()  # closing the tab on purpose: its unsaved text is gone
                 doc.shutdown()
             view.close_page_finish(page, ok)
+            if ok and self.get_application() is not None:
+                self.get_application().schedule_session_save()
 
         if not doc.modified:
             finish(True)
@@ -291,6 +301,12 @@ class Window(Adw.ApplicationWindow):
         if self._closing:
             return False
         pending = [d for d in self.documents if d.modified]
+        # Like GNOME Text Editor: with session restore, closing the last window keeps unsaved
+        # documents as drafts and brings them back next time, so there is nothing to ask.
+        if pending and settings.get().get_boolean("restore-session") and self._is_last_window():
+            for doc in pending:
+                doc.flush_draft()
+            pending = []
         if not pending:
             self._finish_close()
             return False
@@ -301,7 +317,7 @@ class Window(Adw.ApplicationWindow):
             if pending:
                 doc = pending.pop(0)
                 self.tab_view.set_selected_page(self.tab_view.get_page(doc))
-                self._confirm_save(doc, step)
+                self._confirm_save(doc, lambda ok, doc=doc: (ok and doc.discard_draft(), step(ok)))
             else:
                 self._finish_close()
                 self.close()
@@ -327,9 +343,17 @@ class Window(Adw.ApplicationWindow):
             prefs.set_int("window-width", width)
             prefs.set_int("window-height", height)
         app = self.get_application()
-        others = [w for w in app.get_windows() if w is not self and isinstance(w, Window)] if app else []
-        if app is not None and not others:
-            app.save_session(self)
+        if app is not None and self._is_last_window():
+            self._closing = False  # still counts as open while it writes its own session
+            app.save_session_now()
+            self._closing = True
+
+    def is_closing(self):
+        return self._closing
+
+    def _is_last_window(self):
+        app = self.get_application()
+        return app is None or not [w for w in app.get_windows() if w is not self and isinstance(w, Window)]
 
     def _confirm_save(self, doc, callback):
         """Pyta „Zapisać zmiany?”; callback(True) gdy można zamknąć dokument."""

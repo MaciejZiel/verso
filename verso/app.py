@@ -10,7 +10,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
-from . import settings  # noqa: E402
+from . import session, settings  # noqa: E402
 from .window import Window  # noqa: E402
 
 APP_ID = settings.APP_ID
@@ -101,34 +101,58 @@ class Application(Adw.Application):
         self._maybe_screenshot(window)
 
     def _restore_session(self, window):
-        prefs = settings.get()
-        if not prefs.get_boolean("restore-session"):
+        if not settings.get().get_boolean("restore-session"):
+            session.prune_drafts(set())
             return
-        uris = prefs.get_strv("session-uris")
-        index = prefs.get_int("session-selected")
-        # Remember which file was selected before missing files are dropped, so the index cannot shift.
-        selected_uri = uris[index] if 0 <= index < len(uris) else None
-        selected_doc = None
-        for uri in uris:
-            file = Gio.File.new_for_uri(uri)
-            if file.query_exists(None):
+        data = session.load_session()
+        keep, restored = set(), []
+        for entry in data["documents"]:
+            uri, draft_id = entry.get("uri"), entry.get("draft")
+            file = Gio.File.new_for_uri(uri) if uri else None
+            text = session.read_draft(draft_id) if draft_id else None
+            doc = None
+            if text is not None:
+                doc = window.restore_draft(file, text, draft_id, entry.get("encoding"), entry.get("newline"))
+                keep.add(draft_id)
+            elif file is not None and file.query_exists(None):
                 doc = window.open_file(file)
-                if uri == selected_uri:
-                    selected_doc = doc
-        if selected_doc is not None:
-            window.tab_view.set_selected_page(window.tab_view.get_page(selected_doc))
+            restored.append(doc)
+        session.prune_drafts(keep)
+        selected = data["selected"]
+        if 0 <= selected < len(restored) and restored[selected] is not None:
+            window.tab_view.set_selected_page(window.tab_view.get_page(restored[selected]))
 
-    def save_session(self, window):
-        """Called by the last window that closes: remembers its documents for the next start."""
-        uris, selected = [], 0
-        for doc in window.documents:
-            if doc.file is not None:
-                if doc is window.current:
-                    selected = len(uris)
-                uris.append(doc.file.get_uri())
-        prefs = settings.get()
-        prefs.set_strv("session-uris", uris)
-        prefs.set_int("session-selected", selected)
+    def schedule_session_save(self):
+        if getattr(self, "_session_timer", 0):
+            return
+        self._session_timer = GLib.timeout_add(1000, self._save_session_timeout)
+
+    def _save_session_timeout(self):
+        self._session_timer = 0
+        self.save_session_now()
+        return GLib.SOURCE_REMOVE
+
+    def save_session_now(self):
+        """Writes session.json (and pending drafts) for all windows."""
+        if getattr(self, "_session_timer", 0):
+            GLib.source_remove(self._session_timer)
+            self._session_timer = 0
+        windows = [w for w in self.get_windows() if isinstance(w, Window) and not w.is_closing()]
+        if not settings.get().get_boolean("restore-session") or not windows:
+            # No open windows means the last one already wrote the session while closing;
+            # writing now would replace it with an empty list and lose the drafts.
+            return
+        documents, selected = [], 0
+        active = self.get_active_window()
+        for window in windows:
+            for doc in window.documents:
+                entry = doc.session_entry()
+                if entry is None:
+                    continue
+                if window is active and doc is window.current:
+                    selected = len(documents)
+                documents.append(entry)
+        session.save_session(documents, selected)
 
     def _quit(self):
         # Przez close(), żeby każde okno zapytało o niezapisane zmiany (sam quit() to pomija).
