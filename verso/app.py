@@ -35,6 +35,7 @@ SHORTCUTS = {
     "win.prev-tab": ["<Control>Page_Up", "<Control><Shift>Tab"],
     "app.quit": ["<Control>q"],
     "app.shortcuts": ["<Control>question"],
+    "app.preferences": ["<Control>comma"],
 }
 
 
@@ -60,6 +61,8 @@ class Application(Adw.Application):
         Adw.Application.do_startup(self)
         Gtk.Window.set_default_icon_name(APP_ID)
         self.zoom = settings.get().get_double("zoom")
+        for key in ("use-system-font", "custom-font"):
+            settings.get().connect(f"changed::{key}", lambda *_: self._apply_css())
         Gtk.StyleContext.add_provider_for_display(
             Gdk.Display.get_default(),
             self._css,
@@ -71,6 +74,7 @@ class Application(Adw.Application):
             ("quit", self._quit),
             ("about", self._about),
             ("shortcuts", self._shortcuts),
+            ("preferences", self._preferences),
         ):
             action = Gio.SimpleAction.new(name, None)
             action.connect("activate", lambda *_a, cb=callback: cb())
@@ -134,7 +138,15 @@ class Application(Adw.Application):
 
     # ---------- wygląd ----------
 
+    def _preferences(self):
+        from .preferences import PreferencesDialog
+
+        PreferencesDialog().present(self.get_active_window())
+
     def _monospace_font(self):
+        if not settings.get().get_boolean("use-system-font"):
+            desc = Pango.FontDescription.from_string(settings.get().get_string("custom-font"))
+            return desc.get_family() or "Monospace", (desc.get_size() / Pango.SCALE) or 11
         # Gio.Settings.new przy braku schematu przerywa proces, więc najpierw sprawdzamy, czy schemat jest.
         name = "Monospace 11"
         source = Gio.SettingsSchemaSource.get_default()
@@ -208,6 +220,11 @@ class Application(Adw.Application):
         mode = os.environ.get("VERSO_MODE")
         if mode:
             GLib.timeout_add(800, lambda: window.current and window.current.set_mode(mode) and False)
+        action = os.environ.get("VERSO_ACTION")  # e.g. app.preferences: open a dialog before the screenshot
+        if action:
+            group, _sep, name = action.partition(".")
+            target = self if group == "app" else window
+            GLib.timeout_add(900, lambda: target.activate_action(name, None) and False)
         if os.environ.get("VERSO_DARK"):
             Adw.StyleManager.get_default().set_color_scheme(Adw.ColorScheme.FORCE_DARK)
 

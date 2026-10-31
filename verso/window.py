@@ -98,6 +98,7 @@ class Window(Adw.ApplicationWindow):
         section.append(_("Wrap Lines"), "win.wrap")
         menu.append_section(None, section)
         section = Gio.Menu()
+        section.append(_("Preferences"), "app.preferences")
         section.append(_("Keyboard Shortcuts"), "app.shortcuts")
         section.append(_("About Verso"), "app.about")
         menu.append_section(None, section)
@@ -140,6 +141,9 @@ class Window(Adw.ApplicationWindow):
         add("prev-tab", lambda: self.tab_view.select_previous_page() or self._wrap_tabs(False))
         self.spell_action = add("spellcheck", self._on_spellcheck, state=settings.get().get_boolean("spellcheck"))
         self.wrap_action = add("wrap", self._on_wrap, state=settings.get().get_boolean("wrap-lines"))
+        # Keep the menu checkmarks in sync when the Preferences dialog changes the same settings.
+        settings.get().connect("changed::wrap-lines", lambda s, k: self.wrap_action.set_state(GLib.Variant.new_boolean(s.get_boolean(k))))
+        settings.get().connect("changed::spellcheck", lambda s, k: self.spell_action.set_state(GLib.Variant.new_boolean(s.get_boolean(k))))
 
     def _wrap_tabs(self, forward):
         n = self.tab_view.get_n_pages()
@@ -155,9 +159,6 @@ class Window(Adw.ApplicationWindow):
     def _on_wrap(self, action, value):
         action.set_state(value)
         settings.get().set_boolean("wrap-lines", value.get_boolean())
-        mode = Gtk.WrapMode.WORD_CHAR if value.get_boolean() else Gtk.WrapMode.NONE
-        for doc in self.documents:
-            doc.view.set_wrap_mode(mode)
 
     def _install_drop_target(self):
         target = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
@@ -178,7 +179,6 @@ class Window(Adw.ApplicationWindow):
     def _add_document(self, doc):
         doc.connect("state-changed", self._on_doc_state)
         doc.connect("open-file", lambda _d, f: self.open_file(f))
-        doc.view.set_wrap_mode(Gtk.WrapMode.WORD_CHAR if self.wrap_action.get_state().get_boolean() else Gtk.WrapMode.NONE)
         doc.set_zoom(self.get_application().zoom)
         page = self.tab_view.append(doc)
         self.tab_view.set_selected_page(page)

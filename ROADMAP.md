@@ -11,7 +11,7 @@ Status legend: [ ] todo, [~] in progress, [x] done.
 - [x] GSettings schema: window state, session, all preferences
 - [x] Session restore: reopen tabs, selected tab and window size after restart
 - [x] JSON tree keeps the key order from the file (the preview payload uses ordered pairs)
-- [ ] Preferences dialog skeleton (`Adw.PreferencesDialog`)
+- [x] Preferences dialog (`Adw.PreferencesDialog`) with style scheme previews, font, display, indentation, editing, session and default view
 
 ## M2. Editor on par with GNOME Text Editor, then better
 
@@ -19,8 +19,8 @@ Status legend: [ ] todo, [~] in progress, [x] done.
 - [ ] Status and properties popover: cursor position, encoding, line endings, indentation, language (each one changeable)
 - [ ] Go to line (Ctrl+L)
 - [ ] Autosave drafts: unsaved documents survive closing the app and a reboot
-- [ ] Overview map (`GtkSource.Map`) next to the editor
-- [ ] Preferences: style scheme (all GtkSourceView schemes with live previews), custom font and size, tab width, spaces or tabs, line numbers, current-line highlight, visible whitespace, right margin, bracket auto-pairing, word wrap
+- [x] Overview map (`GtkSource.Map`) next to the editor
+- [x] Preferences: style scheme (all GtkSourceView schemes with live previews), custom font and size, tab width, spaces or tabs, line numbers, current-line highlight, visible whitespace, right margin, bracket auto-pairing, word wrap
 - [ ] Optional `.editorconfig` support
 
 ## M3. Previews
@@ -33,7 +33,7 @@ Status legend: [ ] todo, [~] in progress, [x] done.
 - [ ] YAML / TOML / XML: the same tree view as JSON
 - [ ] HTML: rendered page with scripts off by default; SVG: rendered image
 - [ ] Print and export to PDF from the preview (`WebKit.PrintOperation`)
-- [ ] Default view mode per file type (preferences)
+- [~] Default view mode per file type (preferences; Markdown and data files so far)
 
 ## M4. Release quality
 

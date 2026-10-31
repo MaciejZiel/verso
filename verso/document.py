@@ -13,7 +13,8 @@ gi.require_version("WebKit", "6.0")
 gi.require_version("Spelling", "1")
 from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk, GtkSource, Spelling, WebKit  # noqa: E402
 
-from . import render  # noqa: E402
+from . import render, settings  # noqa: E402
+from .preferences import resolve_scheme  # noqa: E402
 
 MODES = ("edit", "split", "preview")
 PREVIEW_DELAY_MS = 250
@@ -55,7 +56,7 @@ class Document(Gtk.Box):
         self._build_preview()
 
         self.paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL, vexpand=True, hexpand=True)
-        self.paned.set_start_child(self.source_scroller)
+        self.paned.set_start_child(self.editor_box)
         self.paned.set_end_child(self.webview)
         self.paned.set_resize_start_child(True)
         self.paned.set_resize_end_child(True)
@@ -64,7 +65,9 @@ class Document(Gtk.Box):
         self.append(self.paned)
 
         style = Adw.StyleManager.get_default()
-        style.connect("notify::dark", lambda *_: self._apply_theme())
+        self._style_handler = style.connect("notify::dark", lambda *_: self._apply_theme())
+        self._settings_handler = settings.get().connect("changed", self._on_setting_changed)
+        self._apply_editor_settings()
         self._apply_theme()
         self.set_mode("edit")
 
@@ -79,12 +82,7 @@ class Document(Gtk.Box):
         self.buffer = GtkSource.Buffer()
         self.buffer.set_highlight_matching_brackets(True)
         self.view = GtkSource.View(buffer=self.buffer)
-        self.view.set_show_line_numbers(True)
-        self.view.set_highlight_current_line(True)
-        self.view.set_auto_indent(True)
         self.view.set_smart_backspace(True)
-        self.view.set_tab_width(4)
-        self.view.set_wrap_mode(Gtk.WrapMode.WORD_CHAR)
         self.view.set_top_margin(10)
         self.view.set_bottom_margin(120)
         self.view.set_left_margin(6)
@@ -93,6 +91,15 @@ class Document(Gtk.Box):
 
         self.source_scroller = Gtk.ScrolledWindow(hexpand=True, vexpand=True)
         self.source_scroller.set_child(self.view)
+        # The overview map is created only when enabled: an existing but hidden GtkSource.Map
+        # clears the editor's selection shortly after it is made (breaks find next/previous).
+        self.map = None
+        self.editor_box = Gtk.Box(hexpand=True, vexpand=True)
+        self.editor_box.append(self.source_scroller)
+
+        pairs = Gtk.EventControllerKey()
+        pairs.connect("key-pressed", self._on_editor_key)
+        self.view.add_controller(pairs)
 
         self.buffer.connect("modified-changed", lambda *_: self.emit("state-changed"))
         self.buffer.connect("changed", self._on_buffer_changed)
@@ -101,7 +108,6 @@ class Document(Gtk.Box):
         self.spelling = Spelling.TextBufferAdapter.new(self.buffer, Spelling.Checker.get_default())
         self.view.set_extra_menu(self.spelling.get_menu_model())
         self.view.insert_action_group("spelling", self.spelling)
-        self.spelling.set_enabled(True)
 
         self.search_settings = GtkSource.SearchSettings(wrap_around=True)
         self.search_context = GtkSource.SearchContext(buffer=self.buffer, settings=self.search_settings)
@@ -222,7 +228,7 @@ class Document(Gtk.Box):
         first_load = self.kind is None and self._monitor is None
         self._set_kind_from_file()
         if first_load:
-            self.set_mode("preview" if self.kind else "edit")
+            self.set_mode(self._default_mode())
             self.buffer.place_cursor(self.buffer.get_start_iter())
         self._watch_file()
         self._schedule_preview(immediate=True)
@@ -252,7 +258,7 @@ class Document(Gtk.Box):
             language = manager.get_language("markdown")
         self.buffer.set_language(language)
         # JSON i kod nie potrzebują słownika; Markdown i zwykły tekst tak.
-        self.spelling.set_enabled(self.kind != "json")
+        self.spelling.set_enabled(self.kind != "json" and settings.get().get_boolean("spellcheck"))
 
     def save(self, file=None, callback=None):
         target = file or self.file
@@ -318,13 +324,116 @@ class Document(Gtk.Box):
         else:
             self.reload()
 
+    # ---------- ustawienia ----------
+
+    EDITOR_KEYS = {
+        "show-line-numbers", "highlight-current-line", "show-map", "show-whitespace", "show-right-margin",
+        "right-margin-position", "tab-width", "insert-spaces", "auto-indent", "wrap-lines", "spellcheck",
+    }
+
+    def _on_setting_changed(self, _settings, key):
+        if key == "style-scheme":
+            self._apply_theme()
+        elif key in self.EDITOR_KEYS:
+            self._apply_editor_settings()
+
+    def _apply_editor_settings(self):
+        prefs = settings.get()
+        view = self.view
+        view.set_show_line_numbers(prefs.get_boolean("show-line-numbers"))
+        view.set_highlight_current_line(prefs.get_boolean("highlight-current-line"))
+        view.set_show_right_margin(prefs.get_boolean("show-right-margin"))
+        view.set_right_margin_position(prefs.get_uint("right-margin-position"))
+        view.set_tab_width(prefs.get_uint("tab-width"))
+        view.set_indent_width(-1)  # = tab width
+        view.set_insert_spaces_instead_of_tabs(prefs.get_boolean("insert-spaces"))
+        view.set_auto_indent(prefs.get_boolean("auto-indent"))
+        view.set_wrap_mode(Gtk.WrapMode.WORD_CHAR if prefs.get_boolean("wrap-lines") else Gtk.WrapMode.NONE)
+        if prefs.get_boolean("show-map"):
+            if self.map is None:
+                self.map = GtkSource.Map(view=self.view, vexpand=True, focusable=False)
+                self.editor_box.append(self.map)
+        elif self.map is not None:
+            self.editor_box.remove(self.map)
+            self.map = None
+        drawer = view.get_space_drawer()
+        drawer.set_types_for_locations(GtkSource.SpaceLocationFlags.ALL, GtkSource.SpaceTypeFlags.NONE)
+        if prefs.get_boolean("show-whitespace"):
+            drawer.set_types_for_locations(
+                GtkSource.SpaceLocationFlags.ALL,
+                GtkSource.SpaceTypeFlags.SPACE | GtkSource.SpaceTypeFlags.TAB | GtkSource.SpaceTypeFlags.NBSP,
+            )
+        drawer.set_enable_matrix(prefs.get_boolean("show-whitespace"))
+        self.spelling.set_enabled(self.kind != "json" and prefs.get_boolean("spellcheck"))
+
+    def _default_mode(self):
+        if not self.kind:
+            return "edit"
+        key = "default-mode-markdown" if self.kind == "markdown" else "default-mode-data"
+        return settings.get().get_string(key)
+
+    # Automatic closing of brackets and quotes, and typing "over" a closing character.
+    PAIRS = {"(": ")", "[": "]", "{": "}", '"': '"', "'": "'", "`": "`"}
+
+    def _on_editor_key(self, _controller, keyval, _code, state):
+        if not settings.get().get_boolean("auto-pair"):
+            return False
+        if state & (Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.ALT_MASK):
+            return False
+        char = chr(Gdk.keyval_to_unicode(keyval)) if Gdk.keyval_to_unicode(keyval) else ""
+        buffer = self.buffer
+        insert = buffer.get_iter_at_mark(buffer.get_insert())
+        following = insert.get_char()
+
+        if keyval == Gdk.KEY_BackSpace and not buffer.get_has_selection():
+            before = insert.copy()
+            if before.backward_char() and self.PAIRS.get(before.get_char()) == following and following:
+                end = insert.copy()
+                end.forward_char()
+                buffer.begin_user_action()
+                buffer.delete(before, end)
+                buffer.end_user_action()
+                return True
+            return False
+
+        if not char:
+            return False
+        if char in self.PAIRS.values() and following == char and not buffer.get_has_selection():
+            # Already there: just step over it.
+            insert.forward_char()
+            buffer.place_cursor(insert)
+            return True
+        if char not in self.PAIRS:
+            return False
+        closing = self.PAIRS[char]
+        if char in "\"'`":
+            # Quotes only pair at word boundaries, so apostrophes inside words stay single.
+            previous = insert.copy()
+            if previous.backward_char() and (previous.get_char().isalnum() or previous.get_char() == char):
+                return False
+            if following and following.isalnum():
+                return False
+        buffer.begin_user_action()
+        if buffer.get_has_selection():
+            start, end = buffer.get_selection_bounds()
+            text = buffer.get_text(start, end, True)
+            buffer.delete(start, end)
+            buffer.insert_at_cursor(char + text + closing)
+        else:
+            buffer.insert_at_cursor(char + closing)
+            cursor = buffer.get_iter_at_mark(buffer.get_insert())
+            cursor.backward_char()
+            buffer.place_cursor(cursor)
+        buffer.end_user_action()
+        return True
+
     # ---------- widok ----------
 
     def set_mode(self, mode):
         if mode != "edit" and not self.kind:
             mode = "edit"
         self.mode = mode
-        self.source_scroller.set_visible(mode in ("edit", "split"))
+        self.editor_box.set_visible(mode in ("edit", "split"))
         self.webview.set_visible(mode in ("split", "preview"))
         if mode == "split":
             GLib.idle_add(self._center_paned)
@@ -353,7 +462,7 @@ class Document(Gtk.Box):
 
     def _apply_theme(self):
         dark = Adw.StyleManager.get_default().get_dark()
-        scheme = GtkSource.StyleSchemeManager.get_default().get_scheme("Adwaita-dark" if dark else "Adwaita")
+        scheme = resolve_scheme(settings.get().get_string("style-scheme"), dark)
         if scheme is not None:
             self.buffer.set_style_scheme(scheme)
         self.webview.set_background_color(_rgba("#1e1e1e" if dark else "#ffffff"))
@@ -452,11 +561,11 @@ class Document(Gtk.Box):
         self.replace_toggle.set_visible(self.mode != "preview")
         self.replace_toggle.set_active(replace and self.mode != "preview")
         self.search_revealer.set_reveal_child(True)
-        self.search_entry.grab_focus()
-        self.search_entry.select_region(0, -1)
         # hide_search czyści wyszukiwanie, a tekst w polu zostaje: przywróć je.
         if self.search_entry.get_text():
             self._on_search_changed(self.search_entry)
+        self.search_entry.grab_focus()
+        self.search_entry.select_region(0, -1)
 
     def hide_search(self):
         self.search_revealer.set_reveal_child(False)
@@ -549,6 +658,8 @@ class Document(Gtk.Box):
 
     def shutdown(self):
         """Sprzątanie po zamknięciu karty: monitor pliku, timery i proces WebKit."""
+        settings.get().disconnect(self._settings_handler)
+        Adw.StyleManager.get_default().disconnect(self._style_handler)
         if self._monitor is not None:
             self._monitor.cancel()
             self._monitor = None

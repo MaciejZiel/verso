@@ -1,6 +1,6 @@
 """UI smoke test: drives a real Verso window (needs a display).
 
-Run: GSETTINGS_SCHEMA_DIR=.dev/schemas GSETTINGS_BACKEND=memory python3 tests/ui_smoke.py
+Run: GSETTINGS_SCHEMA_DIR=.dev/schemas GSETTINGS_BACKEND=memory tools/headless.sh python3 tests/ui_smoke.py
 (bin/verso creates .dev/schemas on first start.)
 """
 import os, sys, tempfile
@@ -8,7 +8,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import gi
 gi.require_version("Gtk", "4.0")
-from gi.repository import Gio, GLib, Gtk
+from gi.repository import Adw, Gio, GLib, Gtk
 import traceback
 from verso.app import Application
 
@@ -108,6 +108,38 @@ def steps(win):
     yield 300
     js.buffer.set_modified(False)
     from verso import settings as _settings
+    from gi.repository import Gdk
+    # automatyczne nawiasy: "(" wstawia "()", ")" przeskakuje, Backspace usuwa parę
+    scratch = win.new_document()
+    scratch._on_editor_key(None, Gdk.KEY_parenleft, 0, 0)
+    check("auto-pair inserts pair", scratch.buffer.get_property("text") == "()")
+    scratch._on_editor_key(None, Gdk.KEY_parenright, 0, 0)
+    check("auto-pair steps over", scratch.buffer.get_property("text") == "()" and scratch.buffer.get_property("cursor-position") == 2)
+    scratch.buffer.place_cursor(scratch.buffer.get_iter_at_offset(1))
+    scratch._on_editor_key(None, Gdk.KEY_BackSpace, 0, 0)
+    check("backspace removes pair", scratch.buffer.get_property("text") == "")
+    scratch.buffer.insert_at_cursor("don")
+    scratch._on_editor_key(None, Gdk.KEY_apostrophe, 0, 0)
+    check("apostrophe inside word stays single", scratch.buffer.get_property("text") == "don")
+    # ustawienia działają od razu
+    _settings.get().set_boolean("show-map", True)
+    _settings.get().set_uint("tab-width", 2)
+    _settings.get().set_string("style-scheme", "solarized-light")
+    yield 200
+    dark = Adw.StyleManager.get_default().get_dark()
+    check("settings apply live", scratch.map is not None and scratch.view.get_tab_width() == 2
+          and scratch.buffer.get_style_scheme().get_id() == ("solarized-dark" if dark else "solarized-light"))
+    scratch.buffer.set_text("alfa beta alfa")
+    scratch.buffer.place_cursor(scratch.buffer.get_start_iter())
+    scratch.show_search()
+    scratch.search_entry.set_text("alfa")
+    yield 400
+    scratch.find_next()
+    yield 300
+    check("search keeps selection with map shown", scratch.buffer.get_has_selection())
+    scratch.hide_search()
+    scratch.buffer.set_modified(False)
+    win.tab_view.set_selected_page(win.tab_view.get_page(js))
     win._save_state()
     uris = _settings.get().get_strv("session-uris")
     check("session saved", len(uris) == 2 and uris[1].endswith("data.json") and _settings.get().get_int("session-selected") == 1)

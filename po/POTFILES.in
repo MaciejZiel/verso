@@ -5,3 +5,4 @@ verso/app.py
 verso/document.py
 verso/render.py
 verso/window.py
+verso/preferences.py

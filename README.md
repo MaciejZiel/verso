@@ -28,7 +28,7 @@ sudo apt install gir1.2-webkit-6.0 gir1.2-gtksource-5 gir1.2-spelling-1 meson ge
 ```
 python3 -m pytest tests -q                         # unit tests
 meson test -C _build                               # desktop file, metainfo and schema validation
-GSETTINGS_SCHEMA_DIR=.dev/schemas GSETTINGS_BACKEND=memory python3 tests/ui_smoke.py   # drives a real window
+GSETTINGS_SCHEMA_DIR=.dev/schemas GSETTINGS_BACKEND=memory tools/headless.sh python3 tests/ui_smoke.py   # real window in an invisible GNOME Shell
 ```
 
 ## Translations
