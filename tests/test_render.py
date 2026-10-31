@@ -13,8 +13,8 @@ def test_markdown_table_and_toc():
     html, toc, _features = render_markdown("# Tytuł\n\n## Sekcja\n\n| a | b |\n| - | - |\n| 1 | 2 |\n")
     assert "<table data-line=" in html
     assert "<td>1</td>" in html
-    assert [(level, name) for level, _, name in toc] == [(1, "Tytuł"), (2, "Sekcja")]
-    assert all(anchor for _, anchor, _ in toc)
+    assert [(level, name) for level, _, name, _line in toc] == [(1, "Tytuł"), (2, "Sekcja")]
+    assert all(anchor for _, anchor, _, _ in toc)
 
 
 def test_markdown_task_list():
@@ -59,7 +59,7 @@ def test_build_page_has_nonce_csp():
 
 def test_toc_names_are_plain_text():
     _, toc, _ = render_markdown("# A &amp; B\n\n# x < y\n")
-    assert [name for _, _, name in toc] == ["A & B", "x < y"]
+    assert [name for _, _, name, _ in toc] == ["A & B", "x < y"]
 
 
 def test_jsonc_has_no_json_preview():
@@ -120,7 +120,7 @@ def test_markdown_lines_math_mermaid_front_matter():
     assert '<div class="math math-display" data-line="7">x^2</div>' in html
     assert '<pre class="mermaid">' in html
     assert features == {"math": True, "mermaid": True}
-    assert toc == [(1, "h", "H")]
+    assert toc == [(1, "h", "H", 3)]
 
 
 def test_markdown_autolink_and_strikethrough():
@@ -201,3 +201,10 @@ def test_csv_reader_error_is_reported(monkeypatch):
     finally:
         csv.field_size_limit(old)
     assert payload["kind"] == "table" and payload["error"].startswith("Could not read the table")
+
+
+def test_outline_lines_match_the_source():
+    from verso.md import outline
+
+    text = "---\ntitle: x\n---\n# One\n\ntext\n\nTwo\n===\n\n```\n# not a heading\n```\n### Three\n"
+    assert [(level, title, line) for level, _, title, line in outline(text)] == [(1, "One", 3), (1, "Two", 7), (3, "Three", 13)]

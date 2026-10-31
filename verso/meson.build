@@ -19,6 +19,7 @@ install_data(
   'app.py',
   'document.py',
   'md.py',
+  'outline.py',
   'preferences.py',
   'render.py',
   'session.py',

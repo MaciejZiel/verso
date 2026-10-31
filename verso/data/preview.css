@@ -200,7 +200,7 @@ html.theme-reader.width-normal { --content-width: 700px; }  /* other widths stay
 html.theme-reader body { font-size: 19px; line-height: 1.8; }
 html.theme-reader:not(.dark) { --bg: #fbf8f1; --soft: rgba(80, 60, 20, 0.05); --code-bg: rgba(80, 60, 20, 0.07); }
 html.theme-reader .markdown h1, html.theme-reader .markdown h2 { border-bottom: 0; }
-html.theme-reader #toc { display: none; }
+html.theme-reader #toc, html.outline-shown #toc { display: none; }
 
 /* ---------- Printing ---------- */
 @media print {

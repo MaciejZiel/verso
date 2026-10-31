@@ -61,6 +61,11 @@
       <default>true</default>
       <summary>Show the status bar</summary>
     </key>
+    <key name="show-outline" type="b">
+      <default>false</default>
+      <summary>Show the outline</summary>
+      <description>Show a sidebar with the headings of Markdown documents.</description>
+    </key>
     <key name="show-whitespace" type="b">
       <default>false</default>
       <summary>Show spaces and tabs</summary>

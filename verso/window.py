@@ -99,6 +99,7 @@ class Window(Adw.ApplicationWindow):
         section = Gio.Menu()
         section.append(_("Check Spelling"), "win.spellcheck")
         section.append(_("Wrap Lines"), "win.wrap")
+        section.append(_("Show Outline"), "win.outline")
         menu.append_section(None, section)
         section = Gio.Menu()
         section.append(_("Preferences"), "app.preferences")
@@ -147,10 +148,12 @@ class Window(Adw.ApplicationWindow):
         add("prev-tab", lambda: self.tab_view.select_previous_page() or self._wrap_tabs(False))
         self.spell_action = add("spellcheck", self._on_spellcheck, state=settings.get().get_boolean("spellcheck"))
         self.wrap_action = add("wrap", self._on_wrap, state=settings.get().get_boolean("wrap-lines"))
+        self.outline_action = add("outline", self._on_outline, state=settings.get().get_boolean("show-outline"))
         # Keep the menu checkmarks in sync when the Preferences dialog changes the same settings.
         self._settings_handlers = [
             settings.get().connect("changed::wrap-lines", lambda s, k: self.wrap_action.set_state(GLib.Variant.new_boolean(s.get_boolean(k)))),
             settings.get().connect("changed::spellcheck", lambda s, k: self.spell_action.set_state(GLib.Variant.new_boolean(s.get_boolean(k)))),
+            settings.get().connect("changed::show-outline", lambda s, k: self.outline_action.set_state(GLib.Variant.new_boolean(s.get_boolean(k)))),
         ]
 
     def _wrap_tabs(self, forward):
@@ -166,6 +169,10 @@ class Window(Adw.ApplicationWindow):
     def _on_wrap(self, action, value):
         action.set_state(value)
         settings.get().set_boolean("wrap-lines", value.get_boolean())
+
+    def _on_outline(self, action, value):
+        action.set_state(value)
+        settings.get().set_boolean("show-outline", value.get_boolean())
 
     def _install_drop_target(self):
         target = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)

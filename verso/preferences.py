@@ -92,6 +92,7 @@ class PreferencesDialog(Adw.PreferencesDialog):
         display.add(self._switch("show-map", _("Overview Map"), _("A miniature of the document next to the scrollbar")))
         display.add(self._switch("show-whitespace", _("Show Spaces and Tabs")))
         display.add(self._switch("show-statusbar", _("Status Bar"), _("Word count, cursor position, language, indentation and encoding")))
+        display.add(self._switch("show-outline", _("Outline"), _("Sidebar with the headings of Markdown documents (F9)")))
         margin = Adw.ExpanderRow(title=_("Right Margin"), show_enable_switch=True)
         self.prefs.bind("show-right-margin", margin, "enable-expansion", Gio.SettingsBindFlags.DEFAULT)
         margin.add_row(self._spin("right-margin-position", _("Margin Position"), 20, 250))

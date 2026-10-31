@@ -103,6 +103,35 @@ def steps(win):
     adj = md.source_scroller.get_vadjustment()
     it, _t = md.view.get_line_at_y(int(adj.get_value()))
     check("preview scroll moves editor", 355 <= it.get_line() <= 365)
+    # konspekt nagłówków (F9): lista sekcji, bieżąca sekcja, skok do sekcji
+    win.lookup_action("outline").activate(None)
+    yield 600
+    rows = md.outline.list.observe_children().get_n_items()
+    check("outline shows headings", md.split_view.get_show_sidebar() and rows == 120)
+    selected = md.outline.list.get_selected_row()
+    check("outline highlights section in view", selected is not None and 88 <= selected.get_index() <= 92)
+    md.outline.list.emit("row-activated", md.outline.list.get_row_at_index(10))
+    yield 700
+    cursor = md.buffer.get_iter_at_mark(md.buffer.get_insert())
+    js_top = {}
+    md.webview.evaluate_javascript(
+        "[document.documentElement.classList.contains('outline-shown'), [...document.querySelectorAll('#content h2')].find(e => e.getBoundingClientRect().bottom > 0).textContent].join('|')",
+        -1, None, None, None, lambda w, r, _u: js_top.setdefault("v", w.evaluate_javascript_finish(r).to_string()), None)
+    yield 300
+    check("outline jumps editor to heading", cursor.get_line() == 40)
+    check("outline: preview follows and hides its toc", js_top.get("v") in ("true|Sekcja 9", "true|Sekcja 10"))
+    md.set_mode("preview")
+    md.outline.list.emit("row-activated", md.outline.list.get_row_at_index(70))
+    yield 700
+    selected = md.outline.list.get_selected_row()
+    check("outline in preview mode", selected is not None and selected.get_index() in (69, 70))
+    md.buffer.set_text(long_md + "# Koniec\n")
+    yield 700
+    check("outline updates while typing", md.outline.list.observe_children().get_n_items() == 121)
+    win.lookup_action("outline").activate(None)
+    yield 300
+    check("outline hides", not md.split_view.get_show_sidebar())
+    md.set_mode("split")
     md.buffer.set_modified(False)
     # podglądy formatów: CSV, YAML, XML, HTML (bez skryptów), SVG
     def js_value(view, script, store, key):

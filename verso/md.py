@@ -141,7 +141,7 @@ def _decorate(state):
             title = "".join(child.content for child in (tokens[i + 1].children or []) if child.type in ("text", "code_inline"))
             anchor = _slug(title, used)
             token.attrSet("id", anchor)
-            toc.append((int(token.tag[1]), anchor, title))
+            toc.append((int(token.tag[1]), anchor, title, token.map[0] if token.map else 0))
         if token.type == "list_item_open" and i + 2 < len(tokens) and tokens[i + 2].type == "inline":
             inline = tokens[i + 2]
             match = _TASK.match(inline.content)
@@ -187,19 +187,35 @@ def _front_matter_html(text):
     return f'<pre class="front-matter" data-line="0">{html.escape(text)}</pre>\n'
 
 
-def render(text):
-    """Returns (html, toc, features) — features tells the page which scripts it needs (math, mermaid)."""
+def _parser():
     global _MD
     if _MD is None:
         _MD = _build()
-    prefix, offset = "", 0
+    return _MD
+
+
+def _split_front_matter(text):
+    """(front matter or None, body) — the body keeps empty lines in place of the block, so line numbers match the source."""
     match = _FRONT_MATTER.match(text)
-    if match:
-        prefix = _front_matter_html(match.group(1))
-        # Keep line numbers aligned with the source: replace the block with empty lines.
-        offset = match.group(0).count("\n")
-        text = "\n" * offset + text[match.end():]
+    if not match:
+        return None, text
+    return match.group(1), "\n" * match.group(0).count("\n") + text[match.end():]
+
+
+def render(text):
+    """Returns (html, toc, features) — features tells the page which scripts it needs (math, mermaid).
+
+    toc entries are (level, anchor, title, source line)."""
+    front, text = _split_front_matter(text)
+    prefix = _front_matter_html(front) if front is not None else ""
     env = {}
-    body = _MD.render(text, env)
+    body = _parser().render(text, env)
     features = {"math": 'class="math ' in body, "mermaid": 'class="mermaid"' in body}
     return prefix + body, env.get("toc", []), features
+
+
+def outline(text):
+    """The headings as (level, anchor, title, source line), without rendering HTML (for the outline sidebar)."""
+    env = {}
+    _parser().parse(_split_front_matter(text)[1], env)
+    return env.get("toc", [])

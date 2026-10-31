@@ -22,6 +22,7 @@ Status legend: [ ] todo, [~] in progress, [x] done.
 - [x] Overview map (`GtkSource.Map`) next to the editor
 - [x] Preferences: style scheme (all GtkSourceView schemes with live previews), custom font and size, tab width, spaces or tabs, line numbers, current-line highlight, visible whitespace, right margin, bracket auto-pairing, word wrap
 - [ ] Optional `.editorconfig` support
+- [x] Outline sidebar for Markdown (F9): headings, current section, jump to a section in the editor or the preview
 
 ## M3. Previews
 
@@ -55,4 +56,4 @@ Status legend: [ ] todo, [~] in progress, [x] done.
 
 - Promotion: This Week in GNOME, r/gnome, r/linux; GNOME Circle application
 - Weblate for community translations
-- Ideas: snippets, Markdown outline sidebar, document statistics, split editor (two files side by side)
+- Ideas: snippets, document statistics, split editor (two files side by side)

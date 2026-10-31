@@ -14,11 +14,13 @@ gi.require_version("WebKit", "6.0")
 gi.require_version("Spelling", "1")
 from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk, GtkSource, Spelling, WebKit  # noqa: E402
 
-from . import render, session, settings  # noqa: E402
+from . import md, render, session, settings  # noqa: E402
+from .outline import Outline  # noqa: E402
 from .preferences import resolve_scheme  # noqa: E402
 from .statusbar import StatusBar  # noqa: E402
 
 PREVIEW_DELAY_MS = 250
+OUTLINE_DELAY_MS = 300
 AUTOSAVE_DELAY_MS = 1500
 
 # Windows code pages first: they are supersets of the ISO ones for printable text, and files from
@@ -91,6 +93,8 @@ class Document(Gtk.Box):
         self.draft_id = None  # set while unsaved text is kept in the drafts folder
         self._autosave_timer = 0
         self._saving = False
+        self._outline_timer = 0
+        self._preview_line = 0.0  # top line of the preview, as reported by the page
 
         self._build_banner()
         self._build_search()
@@ -104,7 +108,12 @@ class Document(Gtk.Box):
         self.paned.set_resize_end_child(True)
         self.paned.set_shrink_start_child(False)
         self.paned.set_shrink_end_child(False)
-        self.append(self.paned)
+        self.outline = Outline()
+        self.outline.connect("heading-activated", lambda _o, line: self.go_to_heading(line))
+        self.split_view = Adw.OverlaySplitView(
+            sidebar=self.outline, content=self.paned, show_sidebar=False, min_sidebar_width=180, max_sidebar_width=280
+        )
+        self.append(self.split_view)
         self.statusbar = StatusBar(self)
         self.append(self.statusbar)
 
@@ -355,6 +364,7 @@ class Document(Gtk.Box):
         self.buffer.set_language(language)
         # JSON i kod nie potrzebują słownika; Markdown i zwykły tekst tak.
         self.spelling.set_enabled(self.kind not in render.DATA_KINDS and settings.get().get_boolean("spellcheck"))
+        self._update_outline()
 
     def save(self, file=None, callback=None):
         """Writes through GtkSource.FileSaver, keeping the file's encoding and line endings unless changed."""
@@ -449,6 +459,8 @@ class Document(Gtk.Box):
             self._apply_theme()
         elif key in ("preview-theme", "preview-width"):
             self._apply_preview_options()
+        elif key == "show-outline":
+            self._update_outline()
         elif key in self.EDITOR_KEYS:
             self._apply_editor_settings()
 
@@ -575,6 +587,7 @@ class Document(Gtk.Box):
             self.webview.grab_focus()
         else:
             self.view.grab_focus()
+        self._update_outline_current()
         self.emit("state-changed")
 
     def _center_paned(self):
@@ -647,7 +660,11 @@ class Document(Gtk.Box):
     def _apply_preview_options(self):
         if self._preview_ready and not self._html_shown:
             prefs = settings.get()
-            options = {"theme": prefs.get_string("preview-theme"), "width": prefs.get_string("preview-width")}
+            options = {
+                "theme": prefs.get_string("preview-theme"),
+                "width": prefs.get_string("preview-width"),
+                "outline": self.outline_visible,  # the sidebar replaces the preview's own table of contents
+            }
             self._run_js(f"window.verso.setOptions({json.dumps(options)})")
 
     def _show_html(self, text):
@@ -680,6 +697,7 @@ class Document(Gtk.Box):
         if not self._loading:
             self._schedule_autosave()
             self._schedule_preview()
+            self._schedule_outline()
 
     def _schedule_preview(self, immediate=False):
         if self._preview_timer:
@@ -813,6 +831,7 @@ class Document(Gtk.Box):
         self._scroll_lock_until = GLib.get_monotonic_time() + 150_000
 
     def _on_editor_scroll(self, adjustment):
+        self._update_outline_current()
         if not self._sync_active() or GLib.get_monotonic_time() < self._scroll_lock_until:
             return
         y = adjustment.get_value()
@@ -829,12 +848,18 @@ class Document(Gtk.Box):
             message = json.loads(value.to_string())  # the page posts a JSON string
         except (TypeError, ValueError):
             return
-        if not isinstance(message, dict) or message.get("type") != "scroll" or not self._sync_active():
+        if not isinstance(message, dict) or message.get("type") != "scroll":
+            return
+        line = message.get("line", 0)
+        if isinstance(line, (int, float)) and not isinstance(line, bool):
+            self._preview_line = float(line)
+            if self.mode == "preview":
+                self._update_outline_current()
+        if not self._sync_active():
             return
         if GLib.get_monotonic_time() < self._scroll_lock_until:
             return
         adjustment = self.source_scroller.get_vadjustment()
-        line = message.get("line", 0)
         if line < 0:
             target = adjustment.get_upper() - adjustment.get_page_size()
         else:
@@ -844,6 +869,53 @@ class Document(Gtk.Box):
             target = line_y + (line - whole) * height
         self._lock_scroll()
         adjustment.set_value(max(0, target))
+
+    # ---------- outline sidebar (Markdown) ----------
+
+    @property
+    def outline_visible(self):
+        return self.kind == "markdown" and settings.get().get_boolean("show-outline")
+
+    def _update_outline(self):
+        visible = self.outline_visible
+        self.split_view.set_show_sidebar(visible)
+        if visible:
+            self._refresh_outline()
+        self._apply_preview_options()
+
+    def _schedule_outline(self):
+        if self._outline_timer or not self.outline_visible:
+            return
+        self._outline_timer = GLib.timeout_add(OUTLINE_DELAY_MS, self._refresh_outline)
+
+    def _refresh_outline(self):
+        self._outline_timer = 0
+        if self.outline_visible:
+            text = self.buffer.get_text(self.buffer.get_start_iter(), self.buffer.get_end_iter(), True)
+            self.outline.set_entries(md.outline(text))
+            self._update_outline_current()
+        return GLib.SOURCE_REMOVE
+
+    def _update_outline_current(self):
+        """Highlights the section at the top of the editor, or of the preview when only the preview is shown."""
+        if not self.outline_visible:
+            return
+        if self.mode == "preview":
+            line = self.buffer.get_line_count() if self._preview_line < 0 else self._preview_line
+        else:
+            it, _top = self.view.get_line_at_y(int(self.source_scroller.get_vadjustment().get_value()) + 8)
+            line = it.get_line()
+        self.outline.set_current_line(int(line))
+
+    def go_to_heading(self, line):
+        if self.mode in ("edit", "split"):
+            _found, it = self.buffer.get_iter_at_line(min(line, self.buffer.get_line_count() - 1))
+            self.buffer.place_cursor(it)
+            self.view.scroll_to_mark(self.buffer.get_insert(), 0.0, True, 0.0, 0.0)
+            self.view.grab_focus()
+        if self.mode == "preview" or (self.mode == "split" and not self._sync_active()):
+            self._preview_line = float(line)  # the page does not report scrolls it was told to make
+            self._run_js(f"window.verso.scrollToLine({int(line)})")
 
     def _run_js(self, script):
         self.webview.evaluate_javascript(script, -1, None, None, None, None, None)
@@ -1073,6 +1145,9 @@ class Document(Gtk.Box):
         if self._preview_timer:
             GLib.source_remove(self._preview_timer)
             self._preview_timer = 0
+        if self._outline_timer:
+            GLib.source_remove(self._outline_timer)
+            self._outline_timer = 0
         self.webview.terminate_web_process()
 
     # ---------- pomocnicze ----------

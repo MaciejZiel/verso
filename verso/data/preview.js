@@ -591,6 +591,7 @@
       const html = document.documentElement;
       html.classList.remove("theme-github", "theme-document", "theme-reader", "width-narrow", "width-normal", "width-wide", "width-full");
       html.classList.add("theme-" + (options.theme || "github"), "width-" + (options.width || "normal"));
+      html.classList.toggle("outline-shown", !!options.outline);
     },
     setDark(dark) {
       const changed = document.documentElement.classList.contains("dark") !== !!dark;
