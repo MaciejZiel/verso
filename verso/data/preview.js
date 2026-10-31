@@ -518,8 +518,13 @@
     root.append(wrap);
 
     const width = payload.header.length;
+    // A column is numeric (right-aligned, sorted by value) only when all of its values are numbers.
+    const numeric = payload.header.map((_name, c) => {
+      const values = payload.rows.map((row) => row[c] || "").filter((cell) => cell !== "");
+      return values.length > 0 && values.every((cell) => sortKey(cell) !== null);
+    });
     payload.header.forEach((name, column) => {
-      const th = el("th", "", name || String(column + 1));
+      const th = el("th", numeric[column] ? "num" : "", name || String(column + 1));
       th.addEventListener("click", () => {
         if (tableState.sortColumn === column) tableState.descending = !tableState.descending;
         else {
@@ -537,10 +542,9 @@
       if (query) rows = rows.filter((row) => row.some((cell) => cell.toLowerCase().includes(query)));
       if (tableState.sortColumn >= 0) {
         const c = tableState.sortColumn;
-        const numeric = rows.every((row) => (row[c] || "") === "" || sortKey(row[c]) !== null);
         rows = [...rows].sort((a, b) => {
           const x = a[c] || "", y = b[c] || "";
-          const order = numeric ? (sortKey(x) ?? -Infinity) - (sortKey(y) ?? -Infinity) : x.localeCompare(y, undefined, { numeric: true });
+          const order = numeric[c] ? (sortKey(x) ?? -Infinity) - (sortKey(y) ?? -Infinity) : x.localeCompare(y, undefined, { numeric: true });
           return tableState.descending ? -order : order;
         });
       }
@@ -553,7 +557,7 @@
         const tr = el("tr");
         for (let i = 0; i < width; i++) {
           const cell = row[i] || "";
-          const td = el("td", sortKey(cell) !== null ? "num" : "");
+          const td = el("td", numeric[i] ? "num" : "");
           td.append(withMarks(cell, query));
           tr.append(td);
         }

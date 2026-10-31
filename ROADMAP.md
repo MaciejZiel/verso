@@ -40,9 +40,9 @@ Status legend: [ ] todo, [~] in progress, [x] done.
 
 - [ ] Translations: pl (reference), de, fr, es, pt_BR, it, ru, uk, zh_CN, zh_TW, ja, ko, tr, nl, cs, sv, hu, fi, ar, hi, id
 - [ ] RTL layout check (ar)
-- [ ] MetaInfo: description, light and dark screenshots, releases, OARS rating, URLs; validated with `appstreamcli`
-- [ ] Accessibility pass: keyboard-only use, labels for icon buttons, screen reader names
-- [ ] English README with screenshots; contributor notes; Weblate later
+- [x] MetaInfo: description, light and dark screenshots (`tools/screenshots.sh`), releases, OARS rating, URLs; validated with `appstreamcli`
+- [x] Accessibility pass: keyboard-only use, labels for icon buttons, screen reader names (UI test checks every icon button)
+- [x] English README with screenshots; Weblate later
 
 ## M5. Flatpak and Flathub
 

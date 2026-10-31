@@ -264,8 +264,10 @@ class Application(Adw.Application):
             group, _sep, name = action.partition(".")
             target = self if group == "app" else window
             GLib.timeout_add(900, lambda: target.lookup_action(name).activate(None) and False)
-        if os.environ.get("VERSO_DARK"):
-            Adw.StyleManager.get_default().set_color_scheme(Adw.ColorScheme.FORCE_DARK)
+        dark = os.environ.get("VERSO_DARK")  # 1: dark, 0: light, unset: follow the system
+        if dark:
+            scheme = Adw.ColorScheme.FORCE_LIGHT if dark == "0" else Adw.ColorScheme.FORCE_DARK
+            Adw.StyleManager.get_default().set_color_scheme(scheme)
 
         def shoot():
             width, height = window.get_width(), window.get_height()

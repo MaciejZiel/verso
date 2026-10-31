@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: verso\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-31 23:36+0100\n"
+"POT-Creation-Date: 2026-10-31 23:40+0100\n"
 "PO-Revision-Date: 2026-10-31 22:09+0100\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -59,27 +59,57 @@ msgid "Features:"
 msgstr "Funkcje:"
 
 #: data/io.github.maciejziel.Verso.metainfo.xml.in:15
-msgid "Live Markdown preview with tables, task lists and highlighted code"
-msgstr ""
-"Podgląd Markdowna na żywo z tabelami, listami zadań i kolorowaniem kodu"
+msgid ""
+"Live Markdown preview with tables, task lists, footnotes, math, diagrams and "
+"highlighted code"
+msgstr "Podgląd Markdowna na żywo: tabele, listy zadań, przypisy, wzory, diagramy i kolorowanie kodu"
 
 #: data/io.github.maciejziel.Verso.metainfo.xml.in:16
+msgid "Edit, preview or both side by side, with synchronized scrolling"
+msgstr "Edycja, podgląd albo oba obok siebie, z synchronicznym przewijaniem"
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:17
+msgid "Outline of the headings to move around long documents"
+msgstr "Konspekt nagłówków do poruszania się po długich dokumentach"
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:18
+msgid "JSON, YAML, TOML and XML as a collapsible, searchable tree"
+msgstr "JSON, YAML, TOML i XML jako zwijane drzewo z wyszukiwaniem"
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:19
+msgid "CSV and TSV as a table you can sort and filter"
+msgstr "CSV i TSV jako tabela z sortowaniem i filtrowaniem"
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:20
+msgid ""
+"Syntax highlighting for many languages and all GtkSourceView style schemes"
+msgstr "Kolorowanie składni wielu języków i wszystkie schematy kolorów GtkSourceView"
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:21
+msgid "Unsaved changes survive closing the app and restarting the computer"
+msgstr "Niezapisane zmiany przetrwają zamknięcie programu i ponowne uruchomienie komputera"
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:22
+msgid "Tabs, find and replace, spell checking, printing and export to PDF"
+msgstr "Karty, wyszukiwanie i zastępowanie, sprawdzanie pisowni, drukowanie i eksport do PDF"
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:29
+msgid "Markdown with a live preview side by side"
+msgstr "Markdown z podglądem na żywo obok siebie"
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:33
+msgid "Preview with the outline of headings, in dark mode"
+msgstr "Podgląd z konspektem nagłówków w trybie ciemnym"
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:37
 msgid "JSON as a collapsible, searchable tree"
 msgstr "JSON jako rozwijane drzewo z wyszukiwaniem"
 
-#: data/io.github.maciejziel.Verso.metainfo.xml.in:17
-msgid "Edit, preview or both side by side"
-msgstr "Edycja, podgląd albo oba obok siebie"
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:41
+msgid "CSV as a table you can sort and filter"
+msgstr "CSV jako tabela z sortowaniem i filtrowaniem"
 
-#: data/io.github.maciejziel.Verso.metainfo.xml.in:18
-msgid "Syntax highlighting for many languages"
-msgstr "Kolorowanie składni wielu języków"
-
-#: data/io.github.maciejziel.Verso.metainfo.xml.in:19
-msgid "Tabs, find and replace, spell checking and dark mode"
-msgstr "Karty, wyszukiwanie i zamiana, sprawdzanie pisowni i ciemny motyw"
-
-#: data/io.github.maciejziel.Verso.metainfo.xml.in:45
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:66
 msgid "First preview release."
 msgstr "Pierwsze wydanie testowe."
 

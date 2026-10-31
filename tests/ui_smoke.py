@@ -182,6 +182,7 @@ def steps(win):
         "strona.html": "<h1 id='t'>Nagłówek</h1><script>document.getElementById('t').textContent='SKRYPT'</script><iframe id='f' src='inna.html'></iframe>",
         "rss.xml": "<rss><channel><item><t>A</t></item><item><t>B</t></item></channel></rss>",
         "liczby.csv": "nazwa;kwota\na;1,500\nb;20\nc;300\n",
+        "mieszane.csv": "miasto,rok\nMadryt,865\nPorto,300 BC\n",
         "ikona.svg": "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><rect width='10' height='10'/></svg>",
     }
     opened = {}
@@ -204,7 +205,13 @@ def steps(win):
              " items[0].querySelector('.jtoggle').click(); return items.map(n => n.classList.contains('jopen')).join(','); })()", out, "xml_items")
     js_value(opened["liczby.csv"].webview,
              "document.querySelector('.data-table th:nth-child(2)').click(); [...document.querySelectorAll('.data-table tbody td:nth-child(2)')].map(td => td.textContent).join(' ')", out, "numbers")
+    js_value(opened["mieszane.csv"].webview,
+             "[...document.querySelectorAll('.data-table th, .data-table td')].map(c => c.classList.contains('num') ? 'n' : '-').join('')", out, "mixed")
+    js_value(opened["liczby.csv"].webview,
+             "[...document.querySelectorAll('.data-table th, .data-table td')].map(c => c.classList.contains('num') ? 'n' : '-').join('')", out, "numcol")
     yield 800
+    check("mixed column is not numeric", out.get("mixed") == "------")
+    check("numeric column aligned as a whole", out.get("numcol") == "-n-n-n-n")
     check("html iframe blocked", out.get("iframe") == "")
     check("xml repeated tags open separately", out.get("xml_items") in ("false,true", "true,false"))
     check("thousands separator sorts as number", out.get("numbers") == "20 300 1,500")

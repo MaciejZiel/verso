@@ -1,0 +1,12 @@
+{
+  "city": "Lisbon",
+  "updated": "2026-10-31T09:00:00Z",
+  "units": { "temperature": "°C", "wind": "km/h" },
+  "today": { "summary": "Sunny", "high": 22, "low": 15, "wind": 12, "rain": false },
+  "forecast": [
+    { "day": "Sat", "summary": "Sunny", "high": 23, "low": 15 },
+    { "day": "Sun", "summary": "Cloudy", "high": 20, "low": 14 },
+    { "day": "Mon", "summary": "Showers", "high": 18, "low": 13 }
+  ],
+  "sources": ["IPMA", "Open-Meteo"]
+}

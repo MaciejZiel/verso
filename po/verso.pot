@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: verso\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-10-31 23:36+0100\n"
+"POT-Creation-Date: 2026-10-31 23:40+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -56,26 +56,57 @@ msgid "Features:"
 msgstr ""
 
 #: data/io.github.maciejziel.Verso.metainfo.xml.in:15
-msgid "Live Markdown preview with tables, task lists and highlighted code"
+msgid ""
+"Live Markdown preview with tables, task lists, footnotes, math, diagrams and "
+"highlighted code"
 msgstr ""
 
 #: data/io.github.maciejziel.Verso.metainfo.xml.in:16
-msgid "JSON as a collapsible, searchable tree"
+msgid "Edit, preview or both side by side, with synchronized scrolling"
 msgstr ""
 
 #: data/io.github.maciejziel.Verso.metainfo.xml.in:17
-msgid "Edit, preview or both side by side"
+msgid "Outline of the headings to move around long documents"
 msgstr ""
 
 #: data/io.github.maciejziel.Verso.metainfo.xml.in:18
-msgid "Syntax highlighting for many languages"
+msgid "JSON, YAML, TOML and XML as a collapsible, searchable tree"
 msgstr ""
 
 #: data/io.github.maciejziel.Verso.metainfo.xml.in:19
-msgid "Tabs, find and replace, spell checking and dark mode"
+msgid "CSV and TSV as a table you can sort and filter"
 msgstr ""
 
-#: data/io.github.maciejziel.Verso.metainfo.xml.in:45
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:20
+msgid ""
+"Syntax highlighting for many languages and all GtkSourceView style schemes"
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:21
+msgid "Unsaved changes survive closing the app and restarting the computer"
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:22
+msgid "Tabs, find and replace, spell checking, printing and export to PDF"
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:29
+msgid "Markdown with a live preview side by side"
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:33
+msgid "Preview with the outline of headings, in dark mode"
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:37
+msgid "JSON as a collapsible, searchable tree"
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:41
+msgid "CSV as a table you can sort and filter"
+msgstr ""
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:66
 msgid "First preview release."
 msgstr ""
 

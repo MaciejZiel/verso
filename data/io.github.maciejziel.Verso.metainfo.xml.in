@@ -12,14 +12,35 @@
     <p>Verso is a text editor for GNOME that shows what your files look like while you write them.</p>
     <p>Features:</p>
     <ul>
-      <li>Live Markdown preview with tables, task lists and highlighted code</li>
-      <li>JSON as a collapsible, searchable tree</li>
-      <li>Edit, preview or both side by side</li>
-      <li>Syntax highlighting for many languages</li>
-      <li>Tabs, find and replace, spell checking and dark mode</li>
+      <li>Live Markdown preview with tables, task lists, footnotes, math, diagrams and highlighted code</li>
+      <li>Edit, preview or both side by side, with synchronized scrolling</li>
+      <li>Outline of the headings to move around long documents</li>
+      <li>JSON, YAML, TOML and XML as a collapsible, searchable tree</li>
+      <li>CSV and TSV as a table you can sort and filter</li>
+      <li>Syntax highlighting for many languages and all GtkSourceView style schemes</li>
+      <li>Unsaved changes survive closing the app and restarting the computer</li>
+      <li>Tabs, find and replace, spell checking, printing and export to PDF</li>
     </ul>
   </description>
   <launchable type="desktop-id">io.github.maciejziel.Verso.desktop</launchable>
+  <screenshots>
+    <screenshot type="default">
+      <image>https://raw.githubusercontent.com/MaciejZiel/verso/main/data/screenshots/markdown-split.png</image>
+      <caption>Markdown with a live preview side by side</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/MaciejZiel/verso/main/data/screenshots/markdown-outline-dark.png</image>
+      <caption>Preview with the outline of headings, in dark mode</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/MaciejZiel/verso/main/data/screenshots/json-tree.png</image>
+      <caption>JSON as a collapsible, searchable tree</caption>
+    </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/MaciejZiel/verso/main/data/screenshots/csv-table-dark.png</image>
+      <caption>CSV as a table you can sort and filter</caption>
+    </screenshot>
+  </screenshots>
   <url type="homepage">https://github.com/MaciejZiel/verso</url>
   <url type="bugtracker">https://github.com/MaciejZiel/verso/issues</url>
   <url type="vcs-browser">https://github.com/MaciejZiel/verso</url>
