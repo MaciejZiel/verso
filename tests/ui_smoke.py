@@ -10,7 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import gi
 gi.require_version("Gtk", "4.0")
-from gi.repository import Adw, Gio, GLib, Gtk, GtkSource
+from gi.repository import Adw, Gdk, Gio, GLib, Gtk, GtkSource
 import traceback
 from verso.app import Application
 
@@ -31,6 +31,23 @@ def shot(win, path):
     paintable.snapshot(snap, win.get_width(), win.get_height())
     win.get_renderer().render_texture(snap.to_node(), None).save_to_png(path)
 
+def unlabeled_buttons(widget):
+    """Icon-only buttons with neither a tooltip nor an accessible label (a screen reader says just "button")."""
+    found = []
+    if isinstance(widget, (Gtk.SpinButton, Gtk.PopoverMenu)) or type(widget).__name__ == "AdwBackButton":
+        return found  # GTK and libadwaita label the buttons inside these themselves
+    if isinstance(widget, (Gtk.Button, Gtk.MenuButton)) and widget.get_icon_name() and not widget.get_tooltip_text():
+        chain, node = [], widget
+        while node is not None:
+            chain.append(type(node).__name__)
+            node = node.get_parent()
+        found.append(widget.get_icon_name() + " in " + ">".join(chain[:6]))
+    child = widget.get_first_child()
+    while child is not None:
+        found += unlabeled_buttons(child)
+        child = child.get_next_sibling()
+    return found
+
 def steps(win):
     md = win.open_file(Gio.File.new_for_path(f"{S}/e2e/test.md"))
     yield 1200
@@ -46,6 +63,11 @@ def steps(win):
     yield 400
     check("live preview shows new heading", res.get("h2") == "Nowa sekcja")
     md.show_search(replace=True)
+    yield 300
+    missing = unlabeled_buttons(win)
+    check("icon buttons have descriptions", not missing)
+    if missing:
+        print("unlabeled:", missing)
     md.search_entry.set_text("kota")
     yield 400
     check("search count", md.search_label.get_text() == "1 of 1")
@@ -108,6 +130,12 @@ def steps(win):
     yield 600
     rows = md.outline.list.observe_children().get_n_items()
     check("outline shows headings", md.split_view.get_show_sidebar() and rows == 120)
+    focus = win.get_focus()
+    check("F9 moves keyboard focus to the outline", focus is not None and focus.is_ancestor(md.outline))
+    for controller in md.outline.observe_controllers():
+        if isinstance(controller, Gtk.EventControllerKey):
+            controller.emit("key-pressed", Gdk.KEY_Escape, 0, 0)
+    check("Escape returns to the editor", win.get_focus() is md.view)
     selected = md.outline.list.get_selected_row()
     check("outline highlights section in view", selected is not None and 88 <= selected.get_index() <= 92)
     md.outline.list.emit("row-activated", md.outline.list.get_row_at_index(10))
@@ -293,7 +321,6 @@ def steps(win):
     yield 300
     _settings.get().set_boolean("restore-session", True)
     js.buffer.set_modified(False)
-    from gi.repository import Gdk
     # automatyczne nawiasy: "(" wstawia "()", ")" przeskakuje, Backspace usuwa parę
     scratch = win.new_document()
     scratch._on_editor_key(None, Gdk.KEY_parenleft, 0, 0)

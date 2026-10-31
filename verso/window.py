@@ -173,6 +173,8 @@ class Window(Adw.ApplicationWindow):
     def _on_outline(self, action, value):
         action.set_state(value)
         settings.get().set_boolean("show-outline", value.get_boolean())
+        if value.get_boolean() and self.current:
+            self.current.focus_outline()  # F9 also brings keyboard users to the headings
 
     def _install_drop_target(self):
         target = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)

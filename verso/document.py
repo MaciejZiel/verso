@@ -110,6 +110,9 @@ class Document(Gtk.Box):
         self.paned.set_shrink_end_child(False)
         self.outline = Outline()
         self.outline.connect("heading-activated", lambda _o, line: self.go_to_heading(line))
+        outline_keys = Gtk.EventControllerKey()
+        outline_keys.connect("key-pressed", lambda _c, keyval, _code, _state: keyval == Gdk.KEY_Escape and self._focus_text())
+        self.outline.add_controller(outline_keys)
         self.split_view = Adw.OverlaySplitView(
             sidebar=self.outline, content=self.paned, show_sidebar=False, min_sidebar_width=180, max_sidebar_width=280
         )
@@ -203,8 +206,9 @@ class Document(Gtk.Box):
 
         self.replace_toggle = Gtk.ToggleButton(icon_name="edit-find-replace-symbolic", tooltip_text=_("Replace (Ctrl+H)"))
         self.case_toggle = Gtk.ToggleButton(label="Aa", tooltip_text=_("Match Case"))
+        self.case_toggle.update_property([Gtk.AccessibleProperty.LABEL], [_("Match Case")])  # not "A a"
         self.case_toggle.connect("toggled", lambda b: self._set_case(b.get_active()))
-        close_button = Gtk.Button(icon_name="window-close-symbolic", css_classes=["flat", "circular"])
+        close_button = Gtk.Button(icon_name="window-close-symbolic", css_classes=["flat", "circular"], tooltip_text=_("Close Search (Esc)"))
         close_button.connect("clicked", lambda *_: self.hide_search())
 
         row = Gtk.Box(spacing=6)
@@ -907,6 +911,17 @@ class Document(Gtk.Box):
             line = it.get_line()
         self.outline.set_current_line(int(line))
 
+    def focus_outline(self):
+        """Keyboard access to the sidebar: the highlighted heading (or the first) takes the focus."""
+        if self.outline_visible:
+            row = self.outline.list.get_selected_row() or self.outline.list.get_row_at_index(0)
+            if row is not None:
+                row.grab_focus()
+
+    def _focus_text(self):
+        (self.webview if self.mode == "preview" else self.view).grab_focus()
+        return True
+
     def go_to_heading(self, line):
         if self.mode in ("edit", "split"):
             _found, it = self.buffer.get_iter_at_line(min(line, self.buffer.get_line_count() - 1))
@@ -916,6 +931,8 @@ class Document(Gtk.Box):
         if self.mode == "preview" or (self.mode == "split" and not self._sync_active()):
             self._preview_line = float(line)  # the page does not report scrolls it was told to make
             self._run_js(f"window.verso.scrollToLine({int(line)})")
+        if self.mode == "preview":
+            self.webview.grab_focus()
 
     def _run_js(self, script):
         self.webview.evaluate_javascript(script, -1, None, None, None, None, None)
