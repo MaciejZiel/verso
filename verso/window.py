@@ -189,10 +189,10 @@ class Window(Adw.ApplicationWindow):
         self._on_doc_state(doc)
         return doc
 
-    def restore_draft(self, file, text, draft_id, encoding=None, newline=None):
+    def restore_draft(self, file, text, draft_id, encoding=None, newline=None, etag=None):
         current = self.current
         doc = current if current is not None and current.is_blank else self._add_document(Document())
-        doc.restore_draft(file, text, draft_id, encoding, newline)
+        doc.restore_draft(file, text, draft_id, encoding, newline, etag)
         return doc
 
     def new_document(self):
@@ -344,9 +344,7 @@ class Window(Adw.ApplicationWindow):
             prefs.set_int("window-height", height)
         app = self.get_application()
         if app is not None and self._is_last_window():
-            self._closing = False  # still counts as open while it writes its own session
-            app.save_session_now()
-            self._closing = True
+            app.save_session_now(closing=self)
 
     def is_closing(self):
         return self._closing

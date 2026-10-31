@@ -10,7 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import gi
 gi.require_version("Gtk", "4.0")
-from gi.repository import Adw, Gio, GLib, Gtk
+from gi.repository import Adw, Gio, GLib, Gtk, GtkSource
 import traceback
 from verso.app import Application
 
@@ -210,6 +210,7 @@ def steps(win):
     win.tab_view.set_selected_page(win.tab_view.get_page(js))
     scratch.buffer.set_text("niezapisany szkic")  # nowy dokument bez pliku
     yield 1800  # autozapis
+    _session.wait_for_writes()
     check("draft written", scratch.draft_id is not None and _session.read_draft(scratch.draft_id) == "niezapisany szkic")
     app.hold()
     win.close()
@@ -234,6 +235,30 @@ def steps(win):
     yield 600
     check("saving removes draft", restored_js.draft_id is None and not restored_js.modified
           and Path(f"{S}/e2e/data.json").read_text().startswith('{"z": 1'))
+    # szkic pliku zmienionego na dysku w międzyczasie: pasek z ostrzeżeniem zamiast cichego nadpisania
+    stale = new_win.restore_draft(Gio.File.new_for_path(f"{S}/e2e/test.md"), "stary szkic", _session.new_draft_id(), etag="0:0")
+    check("draft of changed file shows banner", stale.banner.get_revealed())
+    # ponowne otwarcie z innym kodowaniem pyta, gdy są niezapisane zmiany
+    stale.reopen_with_encoding(GtkSource.Encoding.get_utf8())
+    yield 300
+    dialog = new_win.get_visible_dialog()
+    check("reopen with encoding asks", dialog is not None)
+    if dialog:
+        dialog.force_close()
+    yield 200
+    check("cancel keeps unsaved text", stale.buffer.get_property("text") == "stary szkic")
+    # Ctrl+L działa przy wyłączonym pasku stanu
+    _settings.get().set_boolean("show-statusbar", False)
+    stale.set_mode("edit")
+    check("status bar off", not stale.statusbar.get_visible())
+    new_win.lookup_action("goto-line").activate(None)
+    yield 300
+    popover = stale.statusbar.position.get_popover()
+    check("go to line with status bar off", popover.get_visible())
+    popover.popdown()
+    yield 300
+    check("status bar hidden again", not stale.statusbar.get_visible())
+    _settings.get().set_boolean("show-statusbar", True)
     for doc in new_win.documents:
         doc.buffer.set_modified(False)
     app.release()

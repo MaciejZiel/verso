@@ -7,9 +7,13 @@ import json
 import os
 import tempfile
 import uuid
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from gi.repository import GLib
+
+# One worker keeps writes in order: a newer draft never gets overwritten by an older one.
+_writer = ThreadPoolExecutor(max_workers=1, thread_name_prefix="verso-drafts")
 
 
 def data_dir():
@@ -52,6 +56,23 @@ def write_draft(draft_id, text):
     _atomic_write(_draft_path(draft_id), text)
 
 
+def write_draft_async(draft_id, text, on_error=None):
+    """Writes the draft in the background; on_error(message) runs on the main thread."""
+    def job():
+        try:
+            write_draft(draft_id, text)
+        except OSError as error:
+            if on_error is not None:
+                GLib.idle_add(lambda: on_error(error.strerror or str(error)) and False)
+
+    _writer.submit(job)
+
+
+def wait_for_writes():
+    """Blocks until queued draft writes are on disk (used before saving the session on exit)."""
+    _writer.submit(lambda: None).result()
+
+
 def read_draft(draft_id):
     try:
         return _draft_path(draft_id).read_text(encoding="utf-8")
@@ -60,25 +81,45 @@ def read_draft(draft_id):
 
 
 def delete_draft(draft_id):
-    try:
-        _draft_path(draft_id).unlink(missing_ok=True)
-    except ValueError:
-        pass
+    """Queued behind pending writes, so a write still in flight cannot bring the draft back."""
+    def job():
+        try:
+            _draft_path(draft_id).unlink(missing_ok=True)
+        except ValueError:
+            pass
+
+    _writer.submit(job)
 
 
 def save_session(documents, selected):
-    """documents: list of dicts with uri, draft, encoding, newline (any of them may be None)."""
+    """documents: list of dicts with uri, draft, encoding, newline, etag (any of them may be None)."""
+    wait_for_writes()
     _atomic_write(data_dir() / "session.json", json.dumps({"version": 1, "documents": documents, "selected": selected}, indent=1))
 
 
+_ENTRY_KEYS = ("uri", "draft", "encoding", "newline", "etag")
+
+
+def _clean_entry(entry):
+    """A session entry with only string-or-None fields, or None when it is unusable."""
+    if not isinstance(entry, dict):
+        return None
+    clean = {key: entry.get(key) if isinstance(entry.get(key), str) else None for key in _ENTRY_KEYS}
+    return clean if clean["uri"] or clean["draft"] else None
+
+
 def load_session():
+    """Never raises: a damaged or foreign session.json just means an empty session."""
+    empty = {"documents": [], "selected": 0}
     try:
         data = json.loads((data_dir() / "session.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
-        return {"documents": [], "selected": 0}
-    documents = [d for d in data.get("documents", []) if isinstance(d, dict)]
-    selected = data.get("selected", 0)
-    return {"documents": documents, "selected": selected if isinstance(selected, int) else 0}
+        return empty
+    if not isinstance(data, dict) or not isinstance(data.get("documents"), list):
+        return empty
+    documents = [e for e in (_clean_entry(d) for d in data["documents"]) if e is not None]
+    selected = data.get("selected")
+    return {"documents": documents, "selected": selected if isinstance(selected, int) and not isinstance(selected, bool) else 0}
 
 
 def prune_drafts(keep):

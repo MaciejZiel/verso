@@ -74,6 +74,7 @@ class Document(Gtk.Box):
         self._indent_override = None  # (insert_spaces, width) chosen in the status bar for this document
         self.draft_id = None  # set while unsaved text is kept in the drafts folder
         self._autosave_timer = 0
+        self._saving = False
 
         self._build_banner()
         self._build_search()
@@ -296,9 +297,26 @@ class Document(Gtk.Box):
             self.emit("state-changed")
 
     def reopen_with_encoding(self, encoding):
-        if self.file is not None:
+        if self.file is None:
+            return
+
+        def reopen():
             self._save_encoding = None
             self.load(self.file, encoding)
+
+        if not self.modified:
+            reopen()
+            return
+        dialog = Adw.AlertDialog(
+            heading=_("Discard Changes and Reopen?"),
+            body=_("Reopening “{title}” with another encoding replaces your unsaved changes with the file on disk.").format(title=self.title),
+        )
+        dialog.add_response("cancel", _("_Cancel"))
+        dialog.add_response("reopen", _("_Discard and Reopen"))
+        dialog.set_response_appearance("reopen", Adw.ResponseAppearance.DESTRUCTIVE)
+        dialog.set_close_response("cancel")
+        dialog.connect("response", lambda _d, response: response == "reopen" and reopen())
+        dialog.present(self.get_root())
 
     def reload(self):
         if self.file is not None:
@@ -330,8 +348,10 @@ class Document(Gtk.Box):
         saver.set_flags(GtkSource.FileSaverFlags.IGNORE_MODIFICATION_TIME)
         serial = self._change_serial
         renamed = self.file is None or not target.equal(self.file)
+        self._saving = True
 
         def done(saver, result, _data):
+            self._saving = False
             try:
                 saver.save_finish(result)
             except GLib.Error as error:
@@ -343,8 +363,13 @@ class Document(Gtk.Box):
             self._save_encoding = None
             self._save_newline = None
             self.file = target
-            # Text typed while saving did not reach the file, so the document stays modified.
-            self.buffer.set_modified(self._change_serial != serial)
+            # Text typed while saving did not reach the file, so the document stays modified (and keeps its draft).
+            typed_meanwhile = self._change_serial != serial
+            self.buffer.set_modified(typed_meanwhile)
+            if typed_meanwhile:
+                self.flush_draft()
+            else:
+                self.discard_draft()
             self.banner.set_revealed(False)
             if renamed:
                 old_kind = self.kind
@@ -432,16 +457,14 @@ class Document(Gtk.Box):
         drawer.set_enable_matrix(prefs.get_boolean("show-whitespace"))
         self.spelling.set_enabled(self.kind != "json" and prefs.get_boolean("spellcheck"))
         self._update_statusbar_visibility()
-        if hasattr(self, "statusbar"):
-            self.statusbar.update()
+        self.statusbar.update()
 
     def set_indent_override(self, insert_spaces, width):
         self._indent_override = (insert_spaces, width)
         self._apply_editor_settings()
 
     def _update_statusbar_visibility(self):
-        if hasattr(self, "statusbar"):
-            self.statusbar.set_visible(settings.get().get_boolean("show-statusbar") and self.mode != "preview")
+        self.statusbar.set_visible(settings.get().get_boolean("show-statusbar") and self.mode != "preview")
 
     def show_goto(self):
         if self.mode == "preview":
@@ -589,7 +612,6 @@ class Document(Gtk.Box):
         self._change_serial += 1
         if not self._loading:
             self._schedule_autosave()
-        if not self._loading:
             self._schedule_preview()
 
     def _schedule_preview(self, immediate=False):
@@ -744,11 +766,13 @@ class Document(Gtk.Box):
     # ---------- drafts ----------
 
     def _on_modified_changed(self, *_):
-        if not self.buffer.get_modified():
-            self.discard_draft()  # saved or reverted: the draft is no longer needed
+        if not self.buffer.get_modified() and not self._saving:
+            self.discard_draft()  # reverted or reloaded: the draft is no longer needed (saves decide in done())
         self.emit("state-changed")
 
     def _schedule_autosave(self):
+        if not settings.get().get_boolean("restore-session"):
+            return  # drafts would be deleted unread at the next start
         if self._autosave_timer:
             GLib.source_remove(self._autosave_timer)
         self._autosave_timer = GLib.timeout_add(AUTOSAVE_DELAY_MS, self._autosave)
@@ -770,17 +794,17 @@ class Document(Gtk.Box):
             self.draft_id = session.new_draft_id()
             self.emit("state-changed")  # the session has to learn about the new draft
         text = self.buffer.get_text(self.buffer.get_start_iter(), self.buffer.get_end_iter(), True)
-        try:
-            session.write_draft(self.draft_id, text)
-        except OSError as error:
-            self._toast(_("Could not keep a backup of unsaved changes: {error}").format(error=error.strerror))
+        session.write_draft_async(self.draft_id, text, self._on_draft_error)
+
+    def _on_draft_error(self, error):
+        self._toast(_("Could not keep a backup of unsaved changes: {error}").format(error=error))
 
     def discard_draft(self):
         if self.draft_id is not None:
             session.delete_draft(self.draft_id)
             self.draft_id = None
 
-    def restore_draft(self, file, text, draft_id, encoding=None, newline=None):
+    def restore_draft(self, file, text, draft_id, encoding=None, newline=None, etag=None):
         """Brings back a document from the last session together with its unsaved text."""
         self.file = file
         if file is not None:
@@ -800,7 +824,12 @@ class Document(Gtk.Box):
         self._set_kind_from_file()
         self.set_mode(self._default_mode())
         if file is not None:
-            self._etag = self._query_etag(file)
+            # Compare with the file as it was when the draft was written: changes made on disk in
+            # the meantime must be reported, not silently overwritten by the next save.
+            current = self._query_etag(file)
+            self._etag = etag or current
+            if etag is not None and current != etag:
+                self.banner.set_revealed(True)
             self._watch_file()
         self._schedule_preview(immediate=True)
         self.emit("state-changed")
@@ -817,6 +846,7 @@ class Document(Gtk.Box):
             "draft": self.draft_id if self.modified else None,
             "encoding": self.encoding.get_charset(),
             "newline": newline,
+            "etag": self._etag if self.file else None,
         }
 
     def shutdown(self):

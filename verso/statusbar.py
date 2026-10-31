@@ -50,7 +50,8 @@ class StatusBar(Gtk.Box):
         self.position = _flat_button(_("Go to Line (Ctrl+L)"))
         self.position.set_popover(self._goto_popover())
         self.language = _flat_button(_("Syntax Highlighting"))
-        self.language.set_popover(self._language_popover())
+        # Built on first use: ~150 rows per document would slow down restoring many tabs.
+        self.language.set_create_popup_func(lambda button: button.get_popover() or button.set_popover(self._language_popover()))
         self.indent = _flat_button(_("Indentation"))
         self.indent.set_popover(self._indent_popover())
         self.encoding = _flat_button(_("Encoding"))
@@ -63,6 +64,7 @@ class StatusBar(Gtk.Box):
         self._install_actions()
         buffer = document.buffer
         buffer.connect("notify::cursor-position", lambda *_: self._update_position())
+        self._had_selection = False
         buffer.connect("mark-set", self._on_mark_set)
         buffer.connect("changed", lambda *_: self._schedule_count())
         buffer.connect("notify::language", lambda *_: self.update())
@@ -85,7 +87,7 @@ class StatusBar(Gtk.Box):
         newline = self.doc.newline_type
         _set_label(self.newline, next(short for kind, short, _label in NEWLINES if kind == newline))
         self.newline_action.set_state(GLib.Variant.new_string(next(short for kind, short, _l in NEWLINES if kind == newline)))
-        self._schedule_count(immediate=True)
+        self._schedule_count()
 
     def _update_position(self):
         buffer = self.doc.buffer
@@ -94,9 +96,13 @@ class StatusBar(Gtk.Box):
         column = self.doc.view.get_visual_column(cursor) + 1
         _set_label(self.position, _("Ln {line}, Col {column}").format(line=line, column=column))
 
-    def _on_mark_set(self, _buffer, _iter, mark):
+    def _on_mark_set(self, buffer, _iter, mark):
+        # Plain cursor movement does not change the word count; only selections do.
         if mark.get_name() in ("insert", "selection_bound"):
-            self._schedule_count()
+            has_selection = buffer.get_has_selection()
+            if has_selection or self._had_selection:
+                self._schedule_count()
+            self._had_selection = has_selection
 
     def _schedule_count(self, immediate=False):
         if self._count_timer:
@@ -145,8 +151,18 @@ class StatusBar(Gtk.Box):
         return popover
 
     def show_goto(self):
-        if self.get_visible():
-            self.position.popup()
+        if not self.get_visible():
+            # Ctrl+L works with the status bar turned off: show it just while the popover is open.
+            self.set_visible(True)
+            popover = self.position.get_popover()
+            handler = None
+
+            def restore(*_):
+                popover.disconnect(handler)
+                self.doc._update_statusbar_visibility()
+
+            handler = popover.connect("closed", restore)
+        self.position.popup()
 
     def _on_goto(self, *_):
         line, column = parse_goto(self.goto_entry.get_text(), self.doc.buffer.get_line_count())

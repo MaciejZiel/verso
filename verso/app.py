@@ -94,7 +94,11 @@ class Application(Adw.Application):
         self._maybe_screenshot(window)
 
     def do_open(self, files, _n_files, _hint):
+        first_window = self.get_active_window() is None
         window = self.get_active_window() or self._new_window()
+        if first_window:
+            # Opening a file must not drop the last session: its drafts may hold the only copy of unsaved text.
+            self._restore_session(window)
         for file in files:
             window.open_file(file)
         window.present()
@@ -107,12 +111,12 @@ class Application(Adw.Application):
         data = session.load_session()
         keep, restored = set(), []
         for entry in data["documents"]:
-            uri, draft_id = entry.get("uri"), entry.get("draft")
+            uri, draft_id = entry["uri"], entry["draft"]
             file = Gio.File.new_for_uri(uri) if uri else None
             text = session.read_draft(draft_id) if draft_id else None
             doc = None
             if text is not None:
-                doc = window.restore_draft(file, text, draft_id, entry.get("encoding"), entry.get("newline"))
+                doc = window.restore_draft(file, text, draft_id, entry["encoding"], entry["newline"], entry["etag"])
                 keep.add(draft_id)
             elif file is not None and file.query_exists(None):
                 doc = window.open_file(file)
@@ -132,12 +136,12 @@ class Application(Adw.Application):
         self.save_session_now()
         return GLib.SOURCE_REMOVE
 
-    def save_session_now(self):
-        """Writes session.json (and pending drafts) for all windows."""
+    def save_session_now(self, closing=None):
+        """Writes session.json (and pending drafts) for all open windows, plus `closing` if given."""
         if getattr(self, "_session_timer", 0):
             GLib.source_remove(self._session_timer)
             self._session_timer = 0
-        windows = [w for w in self.get_windows() if isinstance(w, Window) and not w.is_closing()]
+        windows = [w for w in self.get_windows() if isinstance(w, Window) and (w is closing or not w.is_closing())]
         if not settings.get().get_boolean("restore-session") or not windows:
             # No open windows means the last one already wrote the session while closing;
             # writing now would replace it with an empty list and lose the drafts.
