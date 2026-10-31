@@ -33,7 +33,7 @@ def test_markdown_code_highlight():
 def test_parse_json_error_has_line():
     data, error = parse_json('{\n  "a": 1\n  "b": 2\n}')
     assert data is None
-    assert error is not None and error.startswith("Linia 3")
+    assert error is not None and error.startswith("Line 3")
 
 
 def test_format_json_keeps_polish():
@@ -42,7 +42,7 @@ def test_format_json_keeps_polish():
 
 
 def test_preview_payload():
-    assert preview_payload("json", '{"a": 1}') == {"kind": "json", "data": {"a": 1}}
+    assert preview_payload("json", '{"a": 1}') == {"kind": "json", "tree": {"o": [["a", {"v": 1}]]}, "raw": '{\n  "a": 1\n}'}
     assert "error" in preview_payload("json", "[")
     assert preview_payload(None, "x") == {"kind": "none"}
     assert preview_payload("markdown", "# A")["toc"][0][2] == "A"
@@ -72,3 +72,20 @@ def test_shorten_home():
     assert shorten_home("/home/ja/Rinvo", "/home/ja") == "~/Rinvo"
     assert shorten_home("/home/ja", "/home/ja") == "~"
     assert shorten_home("/home/ja2/x", "/home/ja") == "/home/ja2/x"
+
+
+def test_tree_keeps_key_order():
+    from verso.render import to_tree
+
+    tree = to_tree({"b": 1, "10": [True, None], "a": {}})
+    assert [key for key, _ in tree["o"]] == ["b", "10", "a"]
+    assert tree["o"][1][1] == {"a": [{"v": True}, {"v": None}]}
+
+
+def test_build_page_injects_strings_safely(monkeypatch):
+    from verso import render
+
+    monkeypatch.setattr(render, "preview_strings", lambda: {"raw": "</script><b>"})
+    page = render.build_page()
+    assert "window.VERSO_I18N" in page
+    assert "</script><b>" not in page

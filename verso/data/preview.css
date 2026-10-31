@@ -127,7 +127,11 @@ body {
 .jbool { color: var(--j-bool); }
 .jnull { color: var(--j-null); font-style: italic; }
 .jpunct { color: var(--muted); }
-.jsum { color: var(--muted); font-size: .85em; margin-left: 6px; cursor: pointer; }
+.jsum { color: var(--muted); cursor: pointer; }
+.jsum .jellipsis { margin: 0 4px; }
+.jsum .jcount {
+  font-size: .78em; padding: 0 6px; margin-inline-end: 4px; border-radius: 9px; background: var(--hover);
+}
 .jopen > .jrow > .jsum { display: none; }
 .jnode:not(.jopen) > .jkids, .jnode:not(.jopen) > .jclose { display: none; }
 mark { background: var(--mark); color: inherit; border-radius: 3px; }

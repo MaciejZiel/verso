@@ -1,6 +1,7 @@
 """Czyste funkcje bez GTK: rozpoznanie rodzaju pliku i zamiana treści na dane podglądu."""
 
 import html as html_lib
+from gettext import gettext as _
 import json
 import re
 import secrets
@@ -102,7 +103,7 @@ def parse_json(text):
     try:
         return json.loads(text), None
     except json.JSONDecodeError as error:
-        return None, f"Linia {error.lineno}, kolumna {error.colno}: {error.msg}"
+        return None, _("Line {line}, column {column}: {message}").format(line=error.lineno, column=error.colno, message=error.msg)
 
 
 def format_json(text, indent=2):
@@ -111,6 +112,28 @@ def format_json(text, indent=2):
     if error:
         return None
     return json.dumps(data, ensure_ascii=False, indent=indent) + "\n"
+
+
+def to_tree(value):
+    """Data for the JS tree that keeps key order (JS objects put numeric-looking keys first)."""
+    if isinstance(value, dict):
+        return {"o": [[key, to_tree(child)] for key, child in value.items()]}
+    if isinstance(value, list):
+        return {"a": [to_tree(child) for child in value]}
+    return {"v": value}
+
+
+def preview_strings():
+    """Translated strings for preview.js."""
+    return {
+        "contents": _("Contents"),
+        "searchJson": _("Search keys and values…"),
+        "expandAll": _("Expand All"),
+        "collapseAll": _("Collapse All"),
+        "raw": _("Raw"),
+        "invalidJson": _("Invalid JSON."),
+        "noPreview": _("No preview for this file type."),
+    }
 
 
 def preview_payload(kind, text):
@@ -122,7 +145,8 @@ def preview_payload(kind, text):
         data, error = parse_json(text)
         if error:
             return {"kind": "json", "error": error}
-        return {"kind": "json", "data": data}
+        raw = json.dumps(data, ensure_ascii=False, indent=2)
+        return {"kind": "json", "tree": to_tree(data), "raw": raw}
     return {"kind": "none"}
 
 
@@ -138,6 +162,8 @@ def build_page():
     nonce = secrets.token_urlsafe(16)
     css = (DATA_DIR / "preview.css").read_text(encoding="utf-8")
     js = (DATA_DIR / "preview.js").read_text(encoding="utf-8")
+    # "</" would end the <script> element early.
+    strings = json.dumps(preview_strings(), ensure_ascii=False).replace("</", "<\\/")
     # Skrypty z treści pliku (surowy HTML w Markdownie) nie wykonają się: CSP wpuszcza tylko nasz nonce.
     csp = (
         "default-src 'none'; img-src file: data: https: http:; media-src file: data: https:; "
@@ -147,5 +173,5 @@ def build_page():
         "<!doctype html><html><head><meta charset='utf-8'>"
         f'<meta http-equiv="Content-Security-Policy" content="{csp}">'
         f"<style>{css}\n{_pygments_css()}</style></head>"
-        f"<body><div id='root'></div><script nonce='{nonce}'>{js}</script></body></html>"
+        f"<body><div id='root'></div><script nonce='{nonce}'>window.VERSO_I18N = {strings};\n{js}</script></body></html>"
     )

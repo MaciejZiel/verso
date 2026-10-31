@@ -1,6 +1,8 @@
 """Jedna karta: edytor GtkSourceView, podgląd WebKit, pasek wyszukiwania i obsługa pliku."""
 
 import json
+from gettext import gettext as _
+from gettext import ngettext
 
 import gi
 
@@ -69,7 +71,7 @@ class Document(Gtk.Box):
     # ---------- budowa ----------
 
     def _build_banner(self):
-        self.banner = Adw.Banner(title="Plik zmienił się na dysku.", button_label="Wczytaj ponownie")
+        self.banner = Adw.Banner(title=_("The file has changed on disk."), button_label=_("_Reload"))
         self.banner.connect("button-clicked", lambda *_: self.reload())
         self.append(self.banner)
 
@@ -116,7 +118,7 @@ class Document(Gtk.Box):
         self._load_page()
 
     def _build_search(self):
-        self.search_entry = Gtk.SearchEntry(hexpand=True, placeholder_text="Znajdź")
+        self.search_entry = Gtk.SearchEntry(hexpand=True, placeholder_text=_("Find"))
         self.search_entry.connect("search-changed", self._on_search_changed)
         self.search_entry.connect("activate", lambda *_: self.find_next())
         self.search_entry.connect("stop-search", lambda *_: self.hide_search())
@@ -125,16 +127,16 @@ class Document(Gtk.Box):
         self.search_entry.add_controller(key)
 
         self.search_label = Gtk.Label(css_classes=["dim-label", "numeric"], width_chars=7)
-        prev_button = Gtk.Button(icon_name="go-up-symbolic", tooltip_text="Poprzednie (Shift+Enter)")
+        prev_button = Gtk.Button(icon_name="go-up-symbolic", tooltip_text=_("Previous Match (Shift+Enter)"))
         prev_button.connect("clicked", lambda *_: self.find_prev())
-        next_button = Gtk.Button(icon_name="go-down-symbolic", tooltip_text="Następne (Enter)")
+        next_button = Gtk.Button(icon_name="go-down-symbolic", tooltip_text=_("Next Match (Enter)"))
         next_button.connect("clicked", lambda *_: self.find_next())
         nav = Gtk.Box(css_classes=["linked"])
         nav.append(prev_button)
         nav.append(next_button)
 
-        self.replace_toggle = Gtk.ToggleButton(icon_name="edit-find-replace-symbolic", tooltip_text="Zamień (Ctrl+H)")
-        self.case_toggle = Gtk.ToggleButton(label="Aa", tooltip_text="Uwzględniaj wielkość liter")
+        self.replace_toggle = Gtk.ToggleButton(icon_name="edit-find-replace-symbolic", tooltip_text=_("Replace (Ctrl+H)"))
+        self.case_toggle = Gtk.ToggleButton(label="Aa", tooltip_text=_("Match Case"))
         self.case_toggle.connect("toggled", lambda b: self._set_case(b.get_active()))
         close_button = Gtk.Button(icon_name="window-close-symbolic", css_classes=["flat", "circular"])
         close_button.connect("clicked", lambda *_: self.hide_search())
@@ -143,11 +145,11 @@ class Document(Gtk.Box):
         for widget in (self.search_entry, self.search_label, nav, self.case_toggle, self.replace_toggle, close_button):
             row.append(widget)
 
-        self.replace_entry = Gtk.Entry(hexpand=True, placeholder_text="Zamień na")
+        self.replace_entry = Gtk.Entry(hexpand=True, placeholder_text=_("Replace with"))
         self.replace_entry.connect("activate", lambda *_: self.replace_one())
-        replace_button = Gtk.Button(label="Zamień")
+        replace_button = Gtk.Button(label=_("Replace"))
         replace_button.connect("clicked", lambda *_: self.replace_one())
-        replace_all_button = Gtk.Button(label="Zamień wszystkie")
+        replace_all_button = Gtk.Button(label=_("Replace All"))
         replace_all_button.connect("clicked", lambda *_: self.replace_all())
         replace_row = Gtk.Box(spacing=6)
         for widget in (self.replace_entry, replace_button, replace_all_button):
@@ -166,13 +168,13 @@ class Document(Gtk.Box):
     @property
     def title(self):
         if self.file is None:
-            return f"Nowy dokument {self.untitled_number}" if self.untitled_number > 1 else "Nowy dokument"
+            return _("New Document {number}").format(number=self.untitled_number) if self.untitled_number > 1 else _("New Document")
         return self.file.get_basename()
 
     @property
     def subtitle(self):
         if self.file is None:
-            return "Szkic"
+            return _("Draft")
         parent = self.file.get_parent()
         path = parent.get_path() if parent else None
         if not path:
@@ -203,11 +205,11 @@ class Document(Gtk.Box):
                 # Pusty bufor nie może zostać podpięty pod prawdziwy plik: zapis by go wyczyścił.
                 self.file = previous
                 self.emit("state-changed")
-            self._toast(f"Nie udało się otworzyć pliku: {error.message}")
+            self._toast(_("Could not open the file: {error}").format(error=error.message))
             return
         text, encoding = self._decode(bytes(contents))
         if encoding != "utf-8":
-            self._toast(f"Plik w kodowaniu {encoding}: zapis zamieni go na UTF-8.")
+            self._toast(_("The file uses the {encoding} encoding; saving converts it to UTF-8.").format(encoding=encoding))
         self._etag = etag
         offset = self.buffer.get_property("cursor-position")
         self.buffer.begin_irreversible_action()
@@ -264,7 +266,7 @@ class Document(Gtk.Box):
             try:
                 _ok, etag = f.replace_contents_finish(result)
             except GLib.Error as error:
-                self._toast(f"Nie udało się zapisać: {error.message}")
+                self._toast(_("Could not save the file: {error}").format(error=error.message))
                 if callback:
                     callback(False)
                 return
@@ -360,13 +362,13 @@ class Document(Gtk.Box):
 
     def format_json(self):
         if self.kind != "json":
-            self._toast("Formatowanie działa tylko dla plików JSON.")
+            self._toast(_("Formatting is available only for JSON files."))
             return
         text = self.buffer.get_text(self.buffer.get_start_iter(), self.buffer.get_end_iter(), True)
         formatted = render.format_json(text)
         if formatted is None:
             _data, error = render.parse_json(text)
-            self._toast(f"Niepoprawny JSON. {error}")
+            self._toast(_("Invalid JSON. {error}").format(error=error))
             return
         if formatted == text:
             return
@@ -530,7 +532,7 @@ class Document(Gtk.Box):
             return  # jeszcze liczy
         bounds = self.buffer.get_selection_bounds()
         position = self.search_context.get_occurrence_position(*bounds) if bounds else 0
-        self.search_label.set_text(f"{max(position, 0)} z {total}" if total else "Brak")
+        self.search_label.set_text(_("{position} of {total}").format(position=max(position, 0), total=total) if total else _("No matches"))
 
     def replace_one(self):
         bounds = self.buffer.get_selection_bounds()
@@ -543,7 +545,7 @@ class Document(Gtk.Box):
     def replace_all(self):
         if self.search_entry.get_text():
             count = self.search_context.replace_all(self.replace_entry.get_text(), -1)
-            self._toast(f"Zamieniono: {count}")
+            self._toast(ngettext("Replaced {count} match", "Replaced {count} matches", count).format(count=count))
 
     def shutdown(self):
         """Sprzątanie po zamknięciu karty: monitor pliku, timery i proces WebKit."""

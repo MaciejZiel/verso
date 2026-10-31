@@ -1,6 +1,7 @@
 """Aplikacja: jedna instancja (D-Bus), skróty, powiększenie wspólne dla okien."""
 
 import os
+from gettext import gettext as _
 import sys
 
 import gi
@@ -42,7 +43,7 @@ class Application(Adw.Application):
         GLib.set_application_name("Verso")
         self.zoom = 1.0
         self._css = Gtk.CssProvider()
-        self.add_main_option("new-window", 0, GLib.OptionFlags.NONE, GLib.OptionArg.NONE, "Otwórz nowe okno", None)
+        self.add_main_option("new-window", 0, GLib.OptionFlags.NONE, GLib.OptionArg.NONE, _("Open a new window"), None)
         self.connect("handle-local-options", self._on_local_options)
 
     def _on_local_options(self, _app, options):
@@ -132,7 +133,7 @@ class Application(Adw.Application):
             if isinstance(window, Window):
                 for doc in window.documents:
                     doc.set_zoom(self.zoom)
-                window.toast(f"Powiększenie: {round(self.zoom * 100)}%")
+                window.toast(_("Zoom: {percent}%").format(percent=round(self.zoom * 100)))
 
     # ---------- okna informacyjne ----------
 
@@ -142,7 +143,7 @@ class Application(Adw.Application):
             application_icon=APP_ID,
             developer_name="Maciej Zieliński",
             version=VERSION,
-            comments="Edytor tekstu z podglądem Markdowna i JSON-a.",
+            comments=_("Text editor with live previews for Markdown, JSON and more"),
             license_type=Gtk.License.MIT_X11,
         )
         dialog.present(self.get_active_window())
@@ -150,13 +151,13 @@ class Application(Adw.Application):
     def _shortcuts(self):
         dialog = Adw.ShortcutsDialog()
         groups = (
-            ("Pliki", (("Otwórz", "<Control>o"), ("Nowa karta", "<Control>t"), ("Nowe okno", "<Control><Shift>n"),
-                       ("Zapisz", "<Control>s"), ("Zapisz jako", "<Control><Shift>s"), ("Zamknij kartę", "<Control>w"))),
-            ("Widok", (("Przełącz edycję i podgląd", "<Control>e"), ("Powiększ", "<Control>plus"),
-                       ("Pomniejsz", "<Control>minus"), ("Zwykły rozmiar", "<Control>0"),
-                       ("Następna karta", "<Control>Page_Down"), ("Poprzednia karta", "<Control>Page_Up"))),
-            ("Edycja", (("Znajdź", "<Control>f"), ("Znajdź i zamień", "<Control>h"),
-                        ("Sformatuj JSON", "<Control><Shift>i"), ("Cofnij", "<Control>z"), ("Ponów", "<Control><Shift>z"))),
+            (_("Files"), ((_("Open"), "<Control>o"), (_("New Tab"), "<Control>t"), (_("New Window"), "<Control><Shift>n"),
+                          (_("Save"), "<Control>s"), (_("Save As"), "<Control><Shift>s"), (_("Close Tab"), "<Control>w"))),
+            (_("View"), ((_("Switch Between Edit and Preview"), "<Control>e"), (_("Zoom In"), "<Control>plus"),
+                         (_("Zoom Out"), "<Control>minus"), (_("Reset Zoom"), "<Control>0"),
+                         (_("Next Tab"), "<Control>Page_Down"), (_("Previous Tab"), "<Control>Page_Up"))),
+            (_("Editing"), ((_("Find"), "<Control>f"), (_("Find and Replace"), "<Control>h"),
+                            (_("Format JSON"), "<Control><Shift>i"), (_("Undo"), "<Control>z"), (_("Redo"), "<Control><Shift>z"))),
         )
         for title, items in groups:
             section = Adw.ShortcutsSection(title=title)

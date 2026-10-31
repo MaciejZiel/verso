@@ -1,7 +1,20 @@
 "use strict";
-// Strona podglądu. Python wywołuje window.verso.update(payload) i window.verso.setDark(bool).
+// Preview page. Python calls window.verso.update(payload) and window.verso.setDark(bool).
+// Translated strings arrive in window.VERSO_I18N (built by render.build_page).
 
 (function () {
+  const T = Object.assign(
+    {
+      contents: "Contents",
+      searchJson: "Search keys and values…",
+      expandAll: "Expand All",
+      collapseAll: "Collapse All",
+      raw: "Raw",
+      invalidJson: "Invalid JSON.",
+      noPreview: "No preview for this file type.",
+    },
+    window.VERSO_I18N || {},
+  );
   const root = document.getElementById("root");
   let current = null;
   let jsonState = { open: new Set(["$"]), raw: false, query: "" };
@@ -33,13 +46,13 @@
     const entries = payload.toc || [];
     toc.hidden = entries.length < 3;
     if (!toc.hidden) {
-      toc.append(el("div", "toc-title", "Spis treści"));
+      toc.append(el("div", "toc-title", T.contents));
       const minLevel = Math.min(...entries.map((e) => e[0]));
       for (const [level, id, name] of entries) {
         const a = el("a", "", name);
         a.href = "#" + id;
         a.dataset.target = id;
-        a.style.paddingLeft = 6 + (level - minLevel) * 12 + "px";
+        a.style.paddingInlineStart = 6 + (level - minLevel) * 12 + "px";
         a.addEventListener("click", (event) => {
           event.preventDefault();
           const target = document.getElementById(id);
@@ -63,11 +76,20 @@
   }
   window.addEventListener("scroll", () => requestAnimationFrame(highlightToc), { passive: true });
 
-  // ---------- JSON ----------
-  function typeOf(value) {
+  // ---------- JSON tree ----------
+  // Nodes keep the file's key order: {o: [[key, node], …]} object, {a: [node, …]} array, {v: value} scalar.
+  function kindOf(node) {
+    if (node.o) return "object";
+    if (node.a) return "array";
+    const value = node.v;
     if (value === null) return "null";
-    if (Array.isArray(value)) return "array";
     return typeof value;
+  }
+
+  function childrenOf(node) {
+    if (node.o) return node.o;
+    if (node.a) return node.a.map((child, i) => [i, child]);
+    return [];
   }
 
   function matches(text, query) {
@@ -92,104 +114,96 @@
     return frag;
   }
 
-  // Ścieżki węzłów, w których poddrzewie jest trafienie: trzeba je rozwinąć.
-  function collectHits(value, path, query, hits) {
-    const type = typeOf(value);
+  function scalarText(node) {
+    return typeof node.v === "string" ? node.v : String(node.v);
+  }
+
+  // Paths of nodes whose subtree contains a match: they have to be expanded.
+  function collectHits(node, path, query, hits) {
+    const kind = kindOf(node);
+    if (kind !== "object" && kind !== "array") return matches(scalarText(node), query);
     let found = false;
-    if (type === "object" || type === "array") {
-      for (const [key, child] of Object.entries(value)) {
-        const childPath = path + "/" + key;
-        const keyHit = type === "object" && matches(key, query);
-        if (collectHits(child, childPath, query, hits) || keyHit) found = true;
-      }
-      if (found) hits.add(path);
-      return found;
+    for (const [key, child] of childrenOf(node)) {
+      const keyHit = kind === "object" && matches(key, query);
+      if (collectHits(child, path + "/" + key, query, hits) || keyHit) found = true;
     }
-    return matches(type === "string" ? value : String(value), query);
+    if (found) hits.add(path);
+    return found;
   }
 
-  // 1 klucz, 2–4 klucze, 5+ kluczy (12–14 też kluczy).
-  function pluralKeys(n) {
-    if (n === 1) return "klucz";
-    const last = n % 10, lastTwo = n % 100;
-    return last >= 2 && last <= 4 && (lastTwo < 12 || lastTwo > 14) ? "klucze" : "kluczy";
-  }
-
-  function scalar(value, query) {
-    const type = typeOf(value);
-    const text = type === "string" ? JSON.stringify(value) : String(value);
-    const cls = { string: "jstr", number: "jnum", boolean: "jbool", null: "jnull" }[type] || "";
+  function scalar(node, query) {
+    const kind = kindOf(node);
+    const text = kind === "string" ? JSON.stringify(node.v) : String(node.v);
+    const cls = { string: "jstr", number: "jnum", boolean: "jbool", null: "jnull" }[kind] || "";
     const span = el("span", cls);
     span.append(withMarks(text, query));
     return span;
   }
 
-  function buildNode(key, value, path, isLast, query, counter) {
-    const type = typeOf(value);
-    const container = type === "object" || type === "array";
-    const node = el("div", container ? "jnode" : "jleaf");
+  function buildNode(key, node, path, isLast, query, counter) {
+    const kind = kindOf(node);
+    const container = kind === "object" || kind === "array";
+    const wrapper = el("div", container ? "jnode" : "jleaf");
     const row = el("div", "jrow");
-    node.append(row);
+    wrapper.append(row);
 
     if (key !== null) {
       const keySpan = el("span", "jkey");
-      const keyText = typeof key === "number" ? String(key) : JSON.stringify(key);
-      if (typeof key !== "number" && matches(key, query)) counter.n++;
-      keySpan.append(withMarks(keyText, typeof key === "number" ? "" : query));
+      const isIndex = typeof key === "number";
+      if (!isIndex && matches(key, query)) counter.n++;
+      keySpan.append(withMarks(isIndex ? String(key) : JSON.stringify(key), isIndex ? "" : query));
       row.append(keySpan, el("span", "jpunct", ": "));
     }
 
     if (!container) {
-      if (matches(type === "string" ? value : String(value), query)) counter.n++;
-      row.append(scalar(value, query));
+      if (matches(scalarText(node), query)) counter.n++;
+      row.append(scalar(node, query));
       if (!isLast) row.append(el("span", "jpunct", ","));
-      return node;
+      return wrapper;
     }
 
-    const entries = Object.entries(value);
-    const [open, close] = type === "array" ? ["[", "]"] : ["{", "}"];
+    const entries = childrenOf(node);
+    const [open, close] = kind === "array" ? ["[", "]"] : ["{", "}"];
     const toggle = el("span", "jtoggle", "▸");
     row.prepend(toggle);
     row.append(el("span", "jpunct", open));
-    const summary = el(
-      "span",
-      "jsum",
-      entries.length
-        ? `${entries.length} ${type === "array" ? "elem." : pluralKeys(entries.length)} ${close}${isLast ? "" : ","}`
-        : `${close}${isLast ? "" : ","}`,
-    );
+    // Language-neutral summary: "… 3 }" instead of a word that would need plural forms.
+    const summary = el("span", "jsum");
+    if (entries.length) {
+      summary.append(el("span", "jellipsis", "…"), el("span", "jcount", String(entries.length)));
+    }
+    summary.append(el("span", "jpunct", close + (isLast ? "" : ",")));
     row.append(summary);
 
     const kids = el("div", "jn jkids");
     const closing = el("div", "jrow jclose");
     closing.append(el("span", "jpunct", close + (isLast ? "" : ",")));
-    node.append(kids, closing);
+    wrapper.append(kids, closing);
 
     let built = false;
     function build() {
       if (built) return;
       built = true;
       entries.forEach(([childKey, child], i) => {
-        const k = type === "array" ? Number(childKey) : childKey;
-        kids.append(buildNode(k, child, path + "/" + childKey, i === entries.length - 1, query, counter));
+        kids.append(buildNode(childKey, child, path + "/" + childKey, i === entries.length - 1, query, counter));
       });
     }
     function setOpen(state) {
       if (state) build();
-      node.classList.toggle("jopen", state);
+      wrapper.classList.toggle("jopen", state);
       if (state) jsonState.open.add(path);
       else jsonState.open.delete(path);
     }
-    node._setOpen = setOpen;
-    toggle.addEventListener("click", () => setOpen(!node.classList.contains("jopen")));
+    wrapper._setOpen = setOpen;
+    toggle.addEventListener("click", () => setOpen(!wrapper.classList.contains("jopen")));
     summary.addEventListener("click", () => setOpen(true));
     if (!entries.length) toggle.style.visibility = "hidden";
     if (jsonState.open.has(path) && entries.length) setOpen(true);
-    return node;
+    return wrapper;
   }
 
   function setAll(state) {
-    // Rozwijanie dzieje się warstwami, bo dzieci powstają dopiero przy rozwinięciu.
+    // Expanding goes level by level, because children are created only when a node opens.
     if (!state) {
       jsonState.open = new Set();
       document.querySelectorAll(".jnode").forEach((n) => n._setOpen && n._setOpen(false));
@@ -197,15 +211,17 @@
     }
     let pending;
     do {
-      pending = [...document.querySelectorAll(".jnode:not(.jopen)")].filter((n) => n._setOpen && n.querySelector(".jtoggle").style.visibility !== "hidden");
+      pending = [...document.querySelectorAll(".jnode:not(.jopen)")].filter(
+        (n) => n._setOpen && n.querySelector(".jtoggle").style.visibility !== "hidden",
+      );
       pending.forEach((n) => n._setOpen(true));
     } while (pending.length);
   }
 
-  function renderJson(payload) {
+  function renderTree(payload) {
     root.innerHTML = "";
     if (payload.error) {
-      root.append(el("div", "error", "Niepoprawny JSON. " + payload.error));
+      root.append(el("div", "error", T.invalidJson + " " + payload.error));
       return;
     }
     const bar = el("div");
@@ -213,13 +229,13 @@
     const search = el("input");
     search.id = "json-search";
     search.type = "search";
-    search.placeholder = "Szukaj w kluczach i wartościach…";
+    search.placeholder = T.searchJson;
     search.value = jsonState.query;
     const count = el("span");
     count.id = "json-count";
-    const expand = el("button", "", "Rozwiń wszystko");
-    const collapse = el("button", "", "Zwiń wszystko");
-    const raw = el("button", jsonState.raw ? "on" : "", "Surowy");
+    const expand = el("button", "", T.expandAll);
+    const collapse = el("button", "", T.collapseAll);
+    const raw = el("button", jsonState.raw ? "on" : "", T.raw);
     bar.append(search, count, expand, collapse, raw);
     root.append(bar);
 
@@ -232,23 +248,22 @@
       if (jsonState.raw) {
         const pre = el("pre");
         pre.id = "json-raw";
-        const text = JSON.stringify(payload.data, null, 2);
-        pre.append(withMarks(text, query));
+        pre.append(withMarks(payload.raw || "", query));
         body.append(pre);
         count.textContent = "";
         return;
       }
       if (query) {
         const hits = new Set();
-        collectHits(payload.data, "$", query, hits);
+        collectHits(payload.tree, "$", query, hits);
         hits.forEach((p) => jsonState.open.add(p));
       }
       const tree = el("div");
       tree.id = "json-tree";
       const counter = { n: 0 };
-      tree.append(buildNode(null, payload.data, "$", true, query, counter));
+      tree.append(buildNode(null, payload.tree, "$", true, query, counter));
       body.append(tree);
-      count.textContent = query ? `${counter.n} trafień` : "";
+      count.textContent = query ? String(counter.n) : "";
       const first = tree.querySelector("mark");
       if (first && query) first.scrollIntoView({ block: "center" });
     }
@@ -269,11 +284,10 @@
       draw();
     });
 
-    // Pierwsze otwarcie: dwa poziomy rozwinięte.
-    if (current !== "json") {
+    // First open: two levels expanded.
+    if (current !== payload.kind) {
       jsonState.open = new Set(["$"]);
-      const data = payload.data;
-      if (data && typeof data === "object") for (const k of Object.keys(data)) jsonState.open.add("$/" + k);
+      for (const [key] of childrenOf(payload.tree)) jsonState.open.add("$/" + key);
     }
     draw();
   }
@@ -282,8 +296,11 @@
     update(payload) {
       const y = window.scrollY;
       if (payload.kind === "markdown") renderMarkdown(payload);
-      else if (payload.kind === "json") renderJson(payload);
-      else root.innerHTML = '<div class="empty">Brak podglądu dla tego typu pliku.</div>';
+      else if (payload.kind === "json") renderTree(payload);
+      else {
+        root.innerHTML = "";
+        root.append(el("div", "empty", T.noPreview));
+      }
       if (current === payload.kind) window.scrollTo(0, y);
       current = payload.kind;
     },

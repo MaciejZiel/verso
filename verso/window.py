@@ -1,5 +1,6 @@
 """Okno w układzie Edytora tekstu GNOME: pasek z „Otwórz”, karty, menu."""
 
+from gettext import gettext as _
 from pathlib import Path
 
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk
@@ -24,7 +25,7 @@ class Window(Adw.ApplicationWindow):
         self.window_title = Adw.WindowTitle(title="Verso")
         header = Adw.HeaderBar(title_widget=self.window_title)
         header.pack_start(self._build_open_button())
-        header.pack_start(Gtk.Button(icon_name="tab-new-symbolic", tooltip_text="Nowa karta (Ctrl+T)", action_name="win.new-tab"))
+        header.pack_start(Gtk.Button(icon_name="tab-new-symbolic", tooltip_text=_("New Tab (Ctrl+T)"), action_name="win.new-tab"))
         header.pack_end(self._build_menu_button())
         self.mode_group = self._build_mode_group()
         header.pack_end(self.mode_group)
@@ -45,17 +46,17 @@ class Window(Adw.ApplicationWindow):
     def _build_open_button(self):
         self.recent_list = Gtk.ListBox(selection_mode=Gtk.SelectionMode.NONE, css_classes=["navigation-sidebar"])
         self.recent_list.connect("row-activated", self._on_recent_activated)
-        self.recent_search = Gtk.SearchEntry(placeholder_text="Szukaj w ostatnich plikach")
+        self.recent_search = Gtk.SearchEntry(placeholder_text=_("Search Recent Documents"))
         self.recent_search.connect("search-changed", lambda *_: self.recent_list.invalidate_filter())
         self.recent_search.connect("activate", lambda *_: self._activate_first_recent())
         self.recent_list.set_filter_func(self._filter_recent)
-        self.recent_empty = Gtk.Label(label="Brak ostatnich plików", css_classes=["dim-label"], margin_top=24, margin_bottom=24)
+        self.recent_empty = Gtk.Label(label=_("No Recent Documents"), css_classes=["dim-label"], margin_top=24, margin_bottom=24)
         self.recent_list.set_placeholder(self.recent_empty)
 
         scroller = Gtk.ScrolledWindow(propagate_natural_height=True, max_content_height=420, min_content_width=340)
         scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         scroller.set_child(self.recent_list)
-        browse = Gtk.Button(label="Przeglądaj pliki…", action_name="win.open", css_classes=["flat"])
+        browse = Gtk.Button(label=_("Browse Files…"), action_name="win.open", css_classes=["flat"])
 
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         box.append(self.recent_search)
@@ -65,10 +66,10 @@ class Window(Adw.ApplicationWindow):
         self.open_popover = Gtk.Popover(child=box)
         self.open_popover.connect("show", lambda *_: self._fill_recent())
 
-        button = Gtk.MenuButton(popover=self.open_popover, tooltip_text="Otwórz plik (Ctrl+O)")
+        button = Gtk.MenuButton(popover=self.open_popover, tooltip_text=_("Open a File (Ctrl+O)"))
         # Jak w Edytorze tekstu: napis, a strzałka po prawej.
         label_box = Gtk.Box(spacing=6)
-        label_box.append(Gtk.Label(label="Otwórz"))
+        label_box.append(Gtk.Label(label=_("Open")))
         label_box.append(Gtk.Image(icon_name="pan-down-symbolic"))
         button.set_child(label_box)
         return button
@@ -76,30 +77,30 @@ class Window(Adw.ApplicationWindow):
     def _build_menu_button(self):
         menu = Gio.Menu()
         section = Gio.Menu()
-        section.append("Nowe okno", "app.new-window")
-        section.append("Zapisz", "win.save")
-        section.append("Zapisz jako…", "win.save-as")
+        section.append(_("New Window"), "app.new-window")
+        section.append(_("Save"), "win.save")
+        section.append(_("Save As…"), "win.save-as")
         menu.append_section(None, section)
         section = Gio.Menu()
-        section.append("Znajdź…", "win.find")
-        section.append("Znajdź i zamień…", "win.replace")
-        section.append("Sformatuj JSON", "win.format-json")
+        section.append(_("Find…"), "win.find")
+        section.append(_("Find and Replace…"), "win.replace")
+        section.append(_("Format JSON"), "win.format-json")
         menu.append_section(None, section)
         section = Gio.Menu()
-        section.append("Sprawdzanie pisowni", "win.spellcheck")
-        section.append("Zawijanie wierszy", "win.wrap")
+        section.append(_("Check Spelling"), "win.spellcheck")
+        section.append(_("Wrap Lines"), "win.wrap")
         menu.append_section(None, section)
         section = Gio.Menu()
-        section.append("Skróty klawiszowe", "app.shortcuts")
-        section.append("O programie Verso", "app.about")
+        section.append(_("Keyboard Shortcuts"), "app.shortcuts")
+        section.append(_("About Verso"), "app.about")
         menu.append_section(None, section)
-        return Gtk.MenuButton(icon_name="open-menu-symbolic", menu_model=menu, tooltip_text="Menu główne", primary=True)
+        return Gtk.MenuButton(icon_name="open-menu-symbolic", menu_model=menu, tooltip_text=_("Main Menu"), primary=True)
 
     def _build_mode_group(self):
         group = Adw.ToggleGroup(css_classes=["flat", "round"], valign=Gtk.Align.CENTER)
         for name, icon in (("edit", "document-edit-symbolic"), ("split", "view-dual-symbolic"), ("preview", "view-reveal-symbolic")):
-            tip = {"edit": "Edycja", "split": "Edycja i podgląd obok siebie", "preview": "Podgląd"}[name]
-            group.add(Adw.Toggle(name=name, icon_name=icon, tooltip=f"{tip} (Ctrl+E przełącza)"))
+            tip = {"edit": _("Edit"), "split": _("Edit and Preview Side by Side"), "preview": _("Preview")}[name]
+            group.add(Adw.Toggle(name=name, icon_name=icon, tooltip=_("{mode} (Ctrl+E to switch)").format(mode=tip)))
         group.connect("notify::active-name", self._on_mode_toggled)
         return group
 
@@ -197,14 +198,14 @@ class Window(Adw.ApplicationWindow):
         return doc
 
     def choose_file(self):
-        dialog = Gtk.FileDialog(title="Otwórz plik")
+        dialog = Gtk.FileDialog(title=_("Open File"))
         filters = Gio.ListStore.new(Gtk.FileFilter)
-        text_filter = Gtk.FileFilter(name="Pliki tekstowe")
+        text_filter = Gtk.FileFilter(name=_("Text Files"))
         text_filter.add_mime_type("text/*")
         text_filter.add_mime_type("application/json")
         for pattern in TEXT_FILTER_SUFFIXES:
             text_filter.add_pattern(pattern)
-        all_filter = Gtk.FileFilter(name="Wszystkie pliki")
+        all_filter = Gtk.FileFilter(name=_("All Files"))
         all_filter.add_pattern("*")
         filters.append(text_filter)
         filters.append(all_filter)
@@ -233,8 +234,8 @@ class Window(Adw.ApplicationWindow):
     def save_document_as(self, doc, callback=None):
         if doc is None:
             return
-        dialog = Gtk.FileDialog(title="Zapisz jako")
-        dialog.set_initial_name(doc.file.get_basename() if doc.file else "Nowy dokument.md")
+        dialog = Gtk.FileDialog(title=_("Save As"))
+        dialog.set_initial_name(doc.file.get_basename() if doc.file else _("New Document") + ".md")
         if doc.file and doc.file.get_parent():
             dialog.set_initial_folder(doc.file.get_parent())
 
@@ -301,12 +302,12 @@ class Window(Adw.ApplicationWindow):
     def _confirm_save(self, doc, callback):
         """Pyta „Zapisać zmiany?”; callback(True) gdy można zamknąć dokument."""
         dialog = Adw.AlertDialog(
-            heading="Zapisać zmiany?",
-            body=f"Niezapisane zmiany w „{doc.title}” zostaną utracone, jeśli ich nie zapiszesz.",
+            heading=_("Save Changes?"),
+            body=_("Unsaved changes to “{title}” will be lost if you don’t save them.").format(title=doc.title),
         )
-        dialog.add_response("cancel", "_Anuluj")
-        dialog.add_response("discard", "_Odrzuć")
-        dialog.add_response("save", "_Zapisz")
+        dialog.add_response("cancel", _("_Cancel"))
+        dialog.add_response("discard", _("_Discard"))
+        dialog.add_response("save", _("_Save"))
         dialog.set_response_appearance("discard", Adw.ResponseAppearance.DESTRUCTIVE)
         dialog.set_response_appearance("save", Adw.ResponseAppearance.SUGGESTED)
         dialog.set_default_response("save")
