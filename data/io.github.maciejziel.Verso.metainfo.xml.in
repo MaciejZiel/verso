@@ -43,6 +43,10 @@
       <image>https://raw.githubusercontent.com/MaciejZiel/verso/main/data/screenshots/csv-table-dark.png</image>
       <caption>CSV as a table you can sort and filter</caption>
     </screenshot>
+    <screenshot>
+      <image>https://raw.githubusercontent.com/MaciejZiel/verso/main/data/screenshots/focus-mode.png</image>
+      <caption>Focus mode: only the text, full screen</caption>
+    </screenshot>
   </screenshots>
   <url type="homepage">https://github.com/MaciejZiel/verso</url>
   <url type="bugtracker">https://github.com/MaciejZiel/verso/issues</url>

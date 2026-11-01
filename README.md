@@ -22,7 +22,7 @@ A text editor for GNOME that shows what your files look like while you write the
 | | |
 |---|---|
 | ![Preview with the outline, dark mode](data/screenshots/markdown-outline-dark.png) | ![JSON tree](data/screenshots/json-tree.png) |
-| ![CSV table, dark mode](data/screenshots/csv-table-dark.png) | |
+| ![CSV table, dark mode](data/screenshots/csv-table-dark.png) | ![Focus mode](data/screenshots/focus-mode.png) |
 
 ## Keyboard shortcuts
 

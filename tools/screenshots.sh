@@ -23,7 +23,7 @@ shoot() {
   } >"$work/config/glib-2.0/settings/keyfile"
   "$root/tools/headless.sh" env -C "$root" \
     HOME="$work/home" XDG_CONFIG_HOME="$work/config" GSETTINGS_BACKEND=keyfile GSETTINGS_SCHEMA_DIR="$work/schemas" \
-    LC_ALL=C.UTF-8 LANGUAGE= VERSO_SCREENSHOT="$out/$name.png" VERSO_MODE="$mode" VERSO_DELAY=3000 \
+    LC_ALL=C.UTF-8 LANGUAGE= VERSO_SCREENSHOT="$out/$name.png" VERSO_MODE="$mode" VERSO_DELAY="${VERSO_DELAY:-3000}" VERSO_ACTION="${VERSO_ACTION:-}" \
     VERSO_DARK="$dark" python3 -m verso "$work/home/Documents/$file" >/dev/null 2>&1
   echo "$out/$name.png"
 }
@@ -32,3 +32,4 @@ shoot markdown-split trip-notes.md split 0
 shoot markdown-outline-dark trip-notes.md preview 1 "show-outline=true"
 shoot json-tree weather.json preview 0
 shoot csv-table-dark cities.csv preview 1
+VERSO_ACTION=win.focus-mode VERSO_DELAY=9000 shoot focus-mode trip-notes.md edit 0

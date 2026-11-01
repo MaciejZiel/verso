@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: verso\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-01 12:20+0100\n"
+"POT-Creation-Date: 2026-11-01 12:32+0100\n"
 "PO-Revision-Date: 2026-10-31 22:09+0100\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -138,7 +138,11 @@ msgstr "JSON jako rozwijane drzewo z wyszukiwaniem"
 msgid "CSV as a table you can sort and filter"
 msgstr "CSV jako tabela z sortowaniem i filtrowaniem"
 
-#: data/io.github.maciejziel.Verso.metainfo.xml.in:69
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:48
+msgid "Focus mode: only the text, full screen"
+msgstr "Tryb skupienia: tylko tekst, na pełnym ekranie"
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:73
 msgid "First preview release."
 msgstr "Pierwsze wydanie testowe."
 
