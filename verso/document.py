@@ -14,7 +14,7 @@ gi.require_version("WebKit", "6.0")
 gi.require_version("Spelling", "1")
 from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk, GtkSource, Spelling, WebKit  # noqa: E402
 
-from . import md, render, session, settings  # noqa: E402
+from . import fonts, md, render, session, settings  # noqa: E402
 from .outline import Outline  # noqa: E402
 from .preferences import resolve_scheme  # noqa: E402
 from .statusbar import StatusBar  # noqa: E402
@@ -36,8 +36,11 @@ def _preview_session():
     """One shared ephemeral WebKit session: previews never store cookies, caches or site data on disk."""
     global _EPHEMERAL
     if _EPHEMERAL is None:
+        # The previews use the default context; it starts no web process before the first preview.
+        fonts.share_with_web_process(WebKit.WebContext.get_default())
         _EPHEMERAL = WebKit.NetworkSession.new_ephemeral()
     return _EPHEMERAL
+
 
 
 def candidate_encodings():

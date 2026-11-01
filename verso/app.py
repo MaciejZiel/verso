@@ -10,7 +10,7 @@ gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk, Pango  # noqa: E402
 
-from . import session, settings  # noqa: E402
+from . import fonts, session, settings  # noqa: E402
 from .window import Window  # noqa: E402
 
 APP_ID = settings.APP_ID
@@ -289,4 +289,5 @@ class Application(Adw.Application):
 
 
 def main():
+    fonts.setup()
     return Application().run(sys.argv)

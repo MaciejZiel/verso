@@ -46,7 +46,8 @@ Status legend: [ ] todo, [~] in progress, [x] done.
 
 ## M5. Flatpak and Flathub
 
-- [~] Flatpak manifest `io.github.maciejziel.Verso.yml` (GNOME 51; bundled libspelling, markdown-it-py, plugins, pygments, PyYAML): builds and the editor runs; preview and printing still to be checked on a real desktop
+- [x] Flatpak manifest `io.github.maciejziel.Verso.yml` (GNOME 51; bundled libspelling, markdown-it-py, plugins, pygments, PyYAML); Verso writes its own font configuration without the host's font caches (stale ones hung the preview) and shares its font cache with the web process (`verso/fonts.py`)
+- [ ] Print dialog in the Flatpak (goes through the print portal; PDF export is verified)
 - [ ] `--filesystem=home` justified in the submission: relative images, links between files, file watching
 - [x] GitHub Actions: build the Flatpak on every push (`.github/workflows/flatpak.yml`)
 - [ ] Public repo, `v1.0.0` tag and GitHub release

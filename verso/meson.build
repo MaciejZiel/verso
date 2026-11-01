@@ -18,6 +18,7 @@ install_data(
   '__main__.py',
   'app.py',
   'document.py',
+  'fonts.py',
   'md.py',
   'outline.py',
   'preferences.py',
