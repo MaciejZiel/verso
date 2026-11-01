@@ -513,6 +513,16 @@ def steps(win):
     new_win.lookup_action("format-json").activate(None)
     check("ctrl+shift+i aligns the markdown table", buf.get_property("text")
           == "Tekst\n\n| a   |  bb |\n| --- | --: |\n| ccc |   1 |\n" and buf.get_iter_at_mark(buf.get_insert()).get_line() == 3)
+    # tryb skupienia: bez pasków, tekst w wyśrodkowanej kolumnie, F11 wraca
+    new_win.lookup_action("focus-mode").activate(None)
+    yield 600
+    check("focus mode hides the bars and centres the text", not new_win.toolbar.get_reveal_top_bars()
+          and not notes.statusbar.get_visible() and notes.view.get_left_margin() > 24
+          and notes.view.get_left_margin() == notes.view.get_right_margin() and not notes.view.get_show_line_numbers())
+    new_win.lookup_action("focus-mode").activate(None)
+    yield 400
+    check("leaving focus mode restores the window", new_win.toolbar.get_reveal_top_bars()
+          and notes.statusbar.get_visible() and notes.view.get_left_margin() == 6 and not new_win.is_fullscreen())
     notes.set_mode("preview")
     buf.set_text("x")
     new_win.lookup_action("bold").activate(None)

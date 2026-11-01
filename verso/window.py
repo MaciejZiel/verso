@@ -38,10 +38,10 @@ class Window(Adw.ApplicationWindow):
         header.pack_end(self.mode_group)
 
         self.toasts = Adw.ToastOverlay(child=self.tab_view)
-        toolbar = Adw.ToolbarView(content=self.toasts)
-        toolbar.add_top_bar(header)
-        toolbar.add_top_bar(self.tab_bar)
-        self.set_content(toolbar)
+        self.toolbar = Adw.ToolbarView(content=self.toasts)
+        self.toolbar.add_top_bar(header)
+        self.toolbar.add_top_bar(self.tab_bar)
+        self.set_content(self.toolbar)
 
         self._install_actions()
         self._install_drop_target()
@@ -98,6 +98,7 @@ class Window(Adw.ApplicationWindow):
         section.append(_("Format"), "win.format-json")
         menu.append_section(None, section)
         section = Gio.Menu()
+        section.append(_("Focus Mode"), "win.focus-mode")
         section.append(_("Check Spelling"), "win.spellcheck")
         section.append(_("Wrap Lines"), "win.wrap")
         section.append(_("Show Outline"), "win.outline")
@@ -155,6 +156,8 @@ class Window(Adw.ApplicationWindow):
         self.spell_action = add("spellcheck", self._on_spellcheck, state=settings.get().get_boolean("spellcheck"))
         self.wrap_action = add("wrap", self._on_wrap, state=settings.get().get_boolean("wrap-lines"))
         self.outline_action = add("outline", self._on_outline, state=settings.get().get_boolean("show-outline"))
+        self.focus_action = add("focus-mode", self._on_focus_mode, state=False)
+        self.connect("notify::fullscreened", self._on_fullscreened)
         # Keep the menu checkmarks in sync when the Preferences dialog changes the same settings.
         self._settings_handlers = [
             settings.get().connect("changed::wrap-lines", lambda s, k: self.wrap_action.set_state(GLib.Variant.new_boolean(s.get_boolean(k)))),
@@ -184,6 +187,30 @@ class Window(Adw.ApplicationWindow):
         elif self.current and self.get_focus() is not None and self.get_focus().is_ancestor(self.current.outline):
             self.current.focus_text()  # the focused row is being hidden
 
+    @property
+    def focus_mode(self):
+        return self.focus_action.get_state().get_boolean()
+
+    def _on_focus_mode(self, action, value):
+        """F11: full screen without the header and tabs; the documents hide their bars too."""
+        active = value.get_boolean()
+        action.set_state(value)
+        self.toolbar.set_reveal_top_bars(not active)
+        for doc in self.documents:
+            doc.set_focus_mode(active)
+        if active:
+            self.fullscreen()
+            self.toast(_("Focus mode. Press F11 to leave it."))
+        else:
+            self.unfullscreen()
+        if self.current:
+            self.current.focus_text()
+
+    def _on_fullscreened(self, *_):
+        # Leaving full screen another way (the window manager, a gesture) leaves focus mode too.
+        if not self.is_fullscreen() and self.focus_mode:
+            self.focus_action.change_state(GLib.Variant.new_boolean(False))
+
     def _install_drop_target(self):
         target = Gtk.DropTarget.new(Gdk.FileList, Gdk.DragAction.COPY)
         target.connect("drop", lambda _t, value, _x, _y: [self.open_file(f) for f in value.get_files()] or True)
@@ -205,6 +232,7 @@ class Window(Adw.ApplicationWindow):
         doc.connect("state-changed", lambda *_: self.get_application() and self.get_application().schedule_session_save())
         doc.connect("open-file", lambda _d, f: self.open_file(f))
         doc.set_zoom(self.get_application().zoom)
+        doc.set_focus_mode(self.focus_mode)
         page = self.tab_view.append(doc)
         self.tab_view.set_selected_page(page)
         self._on_doc_state(doc)

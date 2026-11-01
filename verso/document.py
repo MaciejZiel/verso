@@ -13,7 +13,7 @@ gi.require_version("Adw", "1")
 gi.require_version("GtkSource", "5")
 gi.require_version("WebKit", "6.0")
 gi.require_version("Spelling", "1")
-from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk, GtkSource, Spelling, WebKit  # noqa: E402
+from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk, GtkSource, Pango, Spelling, WebKit  # noqa: E402
 
 from . import fonts, md, mdedit, render, session, settings  # noqa: E402
 from .outline import Outline  # noqa: E402
@@ -100,6 +100,9 @@ class Document(Gtk.Box):
         self._outline_timer = 0
         self._preview_line = 0.0  # top line of the preview, as reported by the page
         self._zoom = 1.0
+        self._focus_mode = False
+        self._focus_tick = 0
+        self._focus_width = 0
 
         self._build_banner()
         self._build_search()
@@ -498,7 +501,7 @@ class Document(Gtk.Box):
     def _apply_editor_settings(self):
         prefs = settings.get()
         view = self.view
-        view.set_show_line_numbers(prefs.get_boolean("show-line-numbers"))
+        view.set_show_line_numbers(prefs.get_boolean("show-line-numbers") and not self._focus_mode)
         view.set_highlight_current_line(prefs.get_boolean("highlight-current-line"))
         view.set_show_right_margin(prefs.get_boolean("show-right-margin"))
         view.set_right_margin_position(prefs.get_uint("right-margin-position"))
@@ -532,7 +535,43 @@ class Document(Gtk.Box):
         self._apply_editor_settings()
 
     def _update_statusbar_visibility(self):
-        self.statusbar.set_visible(settings.get().get_boolean("show-statusbar") and self.mode != "preview")
+        self.statusbar.set_visible(
+            settings.get().get_boolean("show-statusbar") and self.mode != "preview" and not self._focus_mode
+        )
+
+    # ---------- focus mode ----------
+
+    FOCUS_COLUMNS = 76  # width of the text column in focus mode, in characters
+
+    def set_focus_mode(self, active):
+        """Focus mode (F11): no status bar or outline, the text in a centred column."""
+        if active == self._focus_mode:
+            return
+        self._focus_mode = active
+        self._update_statusbar_visibility()
+        self._update_outline()
+        self.view.set_show_line_numbers(settings.get().get_boolean("show-line-numbers") and not active)  # far from a centred text
+        if active:
+            self._focus_width = 0
+            self._focus_tick = self.view.add_tick_callback(self._center_text)
+        else:
+            if self._focus_tick:
+                self.view.remove_tick_callback(self._focus_tick)
+                self._focus_tick = 0
+            self.view.set_left_margin(6)
+            self.view.set_right_margin(12)
+
+    def _center_text(self, view, _clock):
+        # A tick callback rather than a size signal: GTK 4 has none, and this costs one comparison a frame.
+        width = view.get_width()
+        if width != self._focus_width:
+            self._focus_width = width
+            metrics = view.get_pango_context().get_metrics(None, None)
+            column = self.FOCUS_COLUMNS * metrics.get_approximate_char_width() / Pango.SCALE
+            margin = max(24, int((width - column) / 2))
+            view.set_left_margin(margin)
+            view.set_right_margin(margin)
+        return GLib.SOURCE_CONTINUE
 
     def show_goto(self):
         if self.mode == "preview":
@@ -1221,7 +1260,7 @@ class Document(Gtk.Box):
 
     @property
     def outline_visible(self):
-        return self.kind == "markdown" and settings.get().get_boolean("show-outline")
+        return self.kind == "markdown" and settings.get().get_boolean("show-outline") and not self._focus_mode
 
     def _update_outline(self):
         visible = self.outline_visible
@@ -1512,6 +1551,9 @@ class Document(Gtk.Box):
         if self._spelling_idle:
             GLib.source_remove(self._spelling_idle)
             self._spelling_idle = 0
+        if self._focus_tick:
+            self.view.remove_tick_callback(self._focus_tick)
+            self._focus_tick = 0
         settings.get().disconnect(self._settings_handler)
         self.statusbar.shutdown()
         Adw.StyleManager.get_default().disconnect(self._style_handler)
