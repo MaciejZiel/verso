@@ -108,7 +108,8 @@ class Document(Gtk.Box):
         # tabs in the background and plain text files never start one.
         self.webview = None
         self.preview_box = Gtk.Box(hexpand=True, vexpand=True, visible=False)
-        self._print_waiting = False
+        self._load_waiters = {}  # key → callback to run once the preview page has loaded
+        self._load_handler = 0
         self.connect("map", self._on_map)
 
         self.paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL, vexpand=True, hexpand=True)
@@ -1018,25 +1019,71 @@ class Document(Gtk.Box):
         window = self.get_root()
         if self.kind and not self._preview_ready and not self._html_shown:
             # The preview was never shown or its page is still loading: print once it has loaded.
-            if self._print_waiting:
-                return  # a print is already waiting for the page
-            self._print_waiting = True
-            self._ensure_preview()
-            handler = None
-
-            def loaded(_webview, event):
-                if event == WebKit.LoadEvent.FINISHED:
-                    self.webview.disconnect(handler)
-                    self._print_waiting = False
-                    GLib.idle_add(lambda: self.print_document(export_file, on_done) and False)
-
-            handler = self.webview.connect("load-changed", loaded)
+            self._after_preview_loads("print", lambda: self.print_document(export_file, on_done))
             return
         if not (self.kind and self._preview_ready):
             self._print_source(window, export_file, on_done)
             return
         self._push_preview(force=True)  # the preview may be stale while the editor alone is shown
         self._when_preview_settled(lambda: self._print_preview(window, export_file, on_done))
+
+    def _after_preview_loads(self, key, callback):
+        """Makes the preview if needed and runs callback once its page has loaded. A second request
+        with the same key while the first one waits is dropped (Ctrl+P pressed twice)."""
+        if key in self._load_waiters:
+            return
+        self._load_waiters[key] = callback
+        self._ensure_preview()
+        if self._load_handler:
+            return
+
+        def loaded(_webview, event):
+            if event == WebKit.LoadEvent.FINISHED:
+                self.webview.disconnect(self._load_handler)
+                self._load_handler = 0
+                waiters, self._load_waiters = self._load_waiters, {}
+                for waiter in waiters.values():
+                    GLib.idle_add(lambda waiter=waiter: waiter() and False)
+
+        self._load_handler = self.webview.connect("load-changed", loaded)
+
+    def export_html(self, target, on_done):
+        """Writes the rendered Markdown preview as a standalone HTML file; on_done(True/False)."""
+        if self.kind != "markdown":
+            on_done(False)
+            return
+        if not self._preview_ready:
+            self._after_preview_loads("export-html", lambda: self.export_html(target, on_done))
+            return
+        self._push_preview(force=True)  # the preview may be stale while the editor alone is shown
+        self._when_preview_settled(lambda: self._write_html(target, on_done))
+
+    def _write_html(self, target, on_done):
+        script = ("JSON.stringify({classes: document.documentElement.className,"
+                  " content: (document.getElementById('content') || {}).outerHTML || '',"
+                  " toc: (document.getElementById('toc') || {}).outerHTML || '',"
+                  " math: !!document.querySelector('#content .katex')})")
+
+        def written(file, result):
+            try:
+                file.replace_contents_finish(result)
+            except GLib.Error:
+                on_done(False)
+                return
+            on_done(True)
+
+        def rendered(webview, result, _data):
+            try:
+                data = json.loads(webview.evaluate_javascript_finish(result).to_string())
+            except (GLib.Error, ValueError):
+                on_done(False)
+                return
+            page = render.export_page(self.title.rsplit(".", 1)[0], data["classes"], data["content"], data["toc"], data["math"])
+            target.replace_contents_bytes_async(
+                GLib.Bytes.new(page.encode("utf-8")), None, False, Gio.FileCreateFlags.REPLACE_DESTINATION, None, written
+            )
+
+        self.webview.evaluate_javascript(script, -1, None, None, None, rendered, None)
 
     def _when_preview_settled(self, callback):
         """Runs callback once the preview shows the current text: after an HTML reload has finished,

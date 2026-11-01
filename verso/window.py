@@ -89,6 +89,7 @@ class Window(Adw.ApplicationWindow):
         section.append(_("Save As…"), "win.save-as")
         section.append(_("Print…"), "win.print")
         section.append(_("Export as PDF…"), "win.export-pdf")
+        section.append(_("Export as HTML…"), "win.export-html")
         menu.append_section(None, section)
         section = Gio.Menu()
         section.append(_("Find…"), "win.find")
@@ -141,6 +142,7 @@ class Window(Adw.ApplicationWindow):
         add("goto-line", lambda: self.current and self.current.show_goto())
         add("print", lambda: self.current and self.current.print_document())
         add("export-pdf", self.export_pdf)
+        add("export-html", self.export_html)
         add("bold", lambda: self.current and self.current.wrap_selection("**"))
         add("italic", lambda: self.current and self.current.wrap_selection("*"))
         add("code", lambda: self.current and self.current.wrap_selection("`"))
@@ -281,6 +283,26 @@ class Window(Adw.ApplicationWindow):
                 on_done=lambda ok: ok is not None
                 and self.toast(_("Saved as {name}").format(name=target.get_basename()) if ok else _("Could not export the PDF")),
             )
+
+        dialog.save(self, None, done)
+
+    def export_html(self):
+        doc = self.current
+        if doc is None or doc.kind != "markdown":
+            return
+        dialog = Gtk.FileDialog(title=_("Export as HTML"))
+        dialog.set_initial_name(doc.title.rsplit(".", 1)[0] + ".html")
+        if doc.file and doc.file.get_parent():
+            # The same folder keeps relative images and links working.
+            dialog.set_initial_folder(doc.file.get_parent())
+
+        def done(d, result):
+            try:
+                target = d.save_finish(result)
+            except GLib.Error:
+                return
+            doc.export_html(target, lambda ok: self.toast(
+                _("Saved as {name}").format(name=target.get_basename()) if ok else _("Could not export the HTML file")))
 
         dialog.save(self, None, done)
 
@@ -446,6 +468,7 @@ class Window(Adw.ApplicationWindow):
         # Formatting goes through strict JSON and would drop the comments of JSONC files.
         jsonc = doc.file is not None and render.json_allows_comments(doc.file.get_basename())
         self.lookup_action("format-json").set_enabled((doc.kind == "json" and not jsonc) or doc.kind == "markdown")
+        self.lookup_action("export-html").set_enabled(doc.kind == "markdown")
 
     def _on_mode_toggled(self, group, _pspec):
         if getattr(self, "_syncing_mode", False):

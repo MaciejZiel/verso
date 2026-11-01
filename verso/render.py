@@ -399,6 +399,38 @@ def _pygments_css():
     return light + "\n" + dark
 
 
+@cache
+def _katex_css_inline():
+    """KaTeX's style sheet with its fonts embedded, for exported pages that must work on their own."""
+    import base64
+
+    folder = DATA_DIR / "vendor" / "katex"
+    css = (folder / "katex.min.css").read_text(encoding="utf-8")
+    # Only the woff2 files are vendored; drop the woff/ttf fallbacks that point at nothing.
+    css = re.sub(r',url\(fonts/[^)]+\.(?:woff|ttf)\) format\("[a-z]+"\)', "", css)
+
+    def embed(match):
+        data = base64.b64encode((folder / "fonts" / match.group(1)).read_bytes()).decode()
+        return f"url(data:font/woff2;base64,{data})"
+
+    return re.sub(r"url\(fonts/([^)]+\.woff2)\)", embed, css)
+
+
+def export_page(title, classes, content, toc, math=False):
+    """A standalone HTML file of a rendered Markdown preview: our styles inline, math and diagrams as
+    the preview rendered them (KaTeX fonts embedded when there is math), no scripts."""
+    css = (DATA_DIR / "preview.css").read_text(encoding="utf-8")
+    styles = f"{css}\n{_pygments_css()}" + (f"\n{_katex_css_inline()}" if math else "")
+    kept = " ".join(c for c in classes.split() if c not in ("dark", "outline-shown"))  # light, with its own contents
+    toc = toc.replace(' class="active"', "")
+    return (
+        f"<!doctype html>\n<html class=\"{html_lib.escape(kept)}\"><head><meta charset=\"utf-8\">"
+        f"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
+        f"<meta name=\"generator\" content=\"Verso\"><title>{html_lib.escape(title)}</title>"
+        f"<style>{styles}</style></head>\n<body><div id=\"root\"><div id=\"layout\">{content}{toc}</div></div></body></html>\n"
+    )
+
+
 def build_page():
     """Pełna strona podglądu do WebKit.load_html (styl i skrypt wbudowane)."""
     nonce = secrets.token_urlsafe(16)

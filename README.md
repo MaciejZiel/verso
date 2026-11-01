@@ -13,7 +13,7 @@ A text editor for GNOME that shows what your files look like while you write the
 - **JSON, YAML, TOML and XML** as a collapsible, searchable tree that keeps the order of the file; also JSON with comments (`tsconfig.json`, `.jsonc`), JSON Lines (`.jsonl`) and INI-style files (`.ini`, `.env`, `.editorconfig`, systemd units)
 - **CSV and TSV** as a table you can sort and filter
 - **HTML and SVG** previews; HTML runs without scripts
-- Preview themes (GitHub, Document, Reader), print and export to PDF
+- Preview themes (GitHub, Document, Reader), print, export to PDF or to a standalone HTML file
 - Unsaved changes are kept as drafts: they survive closing Verso, a crash or a restart
 - Encodings, line endings and indentation per document; files changed on disk are noticed
 - Tabs, find and replace, go to line, spell checking, overview map, dark mode, session restore

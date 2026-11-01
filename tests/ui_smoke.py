@@ -275,6 +275,17 @@ def steps(win):
     check("export of a never shown preview waits for it, once", ("hidden" in pdf_results) and "hidden2" not in pdf_results
           and (pdf_results["hidden"] is None or is_pdf(f"{S}/e2e/hidden.pdf")))
     win.tab_view.close_page(hidden_page)
+    # eksport do HTML: samodzielny plik z wyrenderowanym podglądem, bez skryptów
+    Path(f"{S}/e2e/wzory.md").write_text("# Wzory\n\n$$E = mc^2$$\n\n```python\nprint(1)\n```\n")
+    formulas = win.open_file(Gio.File.new_for_path(f"{S}/e2e/wzory.md"))
+    yield 1500
+    html_result = {}
+    formulas.export_html(Gio.File.new_for_path(f"{S}/e2e/wzory.html"), lambda ok: html_result.setdefault("ok", ok))
+    yield 2500
+    exported = Path(f"{S}/e2e/wzory.html").read_text() if Path(f"{S}/e2e/wzory.html").exists() else ""
+    check("export to html writes a standalone page", html_result.get("ok") and "<h1" in exported and "class=\"katex" in exported
+          and "data:font/woff2" in exported and "<script" not in exported and "<title>wzory</title>" in exported)
+    win.tab_view.close_page(win.tab_view.get_page(formulas))
     plain.buffer.set_modified(False)
     win.tab_view.close_page(win.tab_view.get_page(plain))
     # motywy podglądu

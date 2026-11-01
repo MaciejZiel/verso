@@ -36,6 +36,7 @@ Status legend: [ ] todo, [~] in progress, [x] done.
 - [x] JSON with comments and trailing commas, JSON Lines, INI / .env / .editorconfig / systemd units in the tree view
 - [x] HTML: rendered page with scripts off by default; SVG: rendered image
 - [x] Print and export to PDF from the preview (`WebKit.PrintOperation`)
+- [x] Export Markdown to a standalone HTML file (styles inline, KaTeX fonts embedded, no scripts)
 - [~] Default view mode per file type (preferences; Markdown and data files so far)
 
 ## M4. Release quality
