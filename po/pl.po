@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: verso\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-01 11:02+0100\n"
+"POT-Creation-Date: 2026-11-01 12:20+0100\n"
 "PO-Revision-Date: 2026-10-31 22:09+0100\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -75,48 +75,70 @@ msgid "Outline of the headings to move around long documents"
 msgstr "Konspekt nagłówków do poruszania się po długich dokumentach"
 
 #: data/io.github.maciejziel.Verso.metainfo.xml.in:18
-msgid "JSON, YAML, TOML and XML as a collapsible, searchable tree"
-msgstr "JSON, YAML, TOML i XML jako zwijane drzewo z wyszukiwaniem"
+msgid ""
+"Writing helpers: lists continue on Enter, shortcuts for bold, italic, code "
+"and links, pasted images saved next to the document, aligned tables"
+msgstr ""
+"Pomoc przy pisaniu: listy kontynuują się po Enterze, skróty do pogrubienia, "
+"kursywy, kodu i linków, wklejone obrazy zapisywane obok dokumentu, wyrównane "
+"tabele"
 
 #: data/io.github.maciejziel.Verso.metainfo.xml.in:19
+msgid ""
+"JSON, JSON with comments, JSON Lines, YAML, TOML, XML, INI and .env files as "
+"a collapsible, searchable tree"
+msgstr ""
+"JSON, JSON z komentarzami, JSON Lines, YAML, TOML, XML, INI i pliki .env "
+"jako zwijane drzewo z wyszukiwaniem"
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:20
 msgid "CSV and TSV as a table you can sort and filter"
 msgstr "CSV i TSV jako tabela z sortowaniem i filtrowaniem"
 
-#: data/io.github.maciejziel.Verso.metainfo.xml.in:20
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:21
 msgid ""
 "Syntax highlighting for many languages and all GtkSourceView style schemes"
 msgstr ""
 "Kolorowanie składni wielu języków i wszystkie schematy kolorów GtkSourceView"
 
-#: data/io.github.maciejziel.Verso.metainfo.xml.in:21
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:22
+msgid "Focus mode that hides everything but the text"
+msgstr "Tryb skupienia, który ukrywa wszystko poza tekstem"
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:23
+msgid "Indentation from the project's .editorconfig"
+msgstr "Wcięcia z pliku .editorconfig projektu"
+
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:24
 msgid "Unsaved changes survive closing the app and restarting the computer"
 msgstr ""
 "Niezapisane zmiany przetrwają zamknięcie programu i ponowne uruchomienie "
 "komputera"
 
-#: data/io.github.maciejziel.Verso.metainfo.xml.in:22
-msgid "Tabs, find and replace, spell checking, printing and export to PDF"
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:25
+msgid ""
+"Tabs, find and replace, spell checking, printing and export to PDF or HTML"
 msgstr ""
-"Karty, wyszukiwanie i zastępowanie, sprawdzanie pisowni, drukowanie i "
-"eksport do PDF"
+"Karty, wyszukiwanie i zastępowanie, sprawdzanie pisowni, drukowanie oraz "
+"eksport do PDF lub HTML"
 
-#: data/io.github.maciejziel.Verso.metainfo.xml.in:29
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:32
 msgid "Markdown with a live preview side by side"
 msgstr "Markdown z podglądem na żywo obok siebie"
 
-#: data/io.github.maciejziel.Verso.metainfo.xml.in:33
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:36
 msgid "Preview with the outline of headings, in dark mode"
 msgstr "Podgląd z konspektem nagłówków w trybie ciemnym"
 
-#: data/io.github.maciejziel.Verso.metainfo.xml.in:37
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:40
 msgid "JSON as a collapsible, searchable tree"
 msgstr "JSON jako rozwijane drzewo z wyszukiwaniem"
 
-#: data/io.github.maciejziel.Verso.metainfo.xml.in:41
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:44
 msgid "CSV as a table you can sort and filter"
 msgstr "CSV jako tabela z sortowaniem i filtrowaniem"
 
-#: data/io.github.maciejziel.Verso.metainfo.xml.in:66
+#: data/io.github.maciejziel.Verso.metainfo.xml.in:69
 msgid "First preview release."
 msgstr "Pierwsze wydanie testowe."
 
@@ -469,47 +491,47 @@ msgstr "_Anuluj"
 msgid "_Discard and Reopen"
 msgstr "_Odrzuć i otwórz ponownie"
 
-#: verso/document.py:425
+#: verso/document.py:427
 #, python-brace-format
 msgid "Could not save the file: {error}"
 msgstr "Nie udało się zapisać pliku: {error}"
 
-#: verso/document.py:761
+#: verso/document.py:774
 msgid "Save the document first to paste images."
 msgstr "Aby wkleić obraz, najpierw zapisz dokument."
 
-#: verso/document.py:788 verso/document.py:805 verso/document.py:820
+#: verso/document.py:801 verso/document.py:818 verso/document.py:833
 #, python-brace-format
 msgid "Could not paste the image: {error}"
 msgstr "Nie udało się wkleić obrazu: {error}"
 
-#: verso/document.py:885
+#: verso/document.py:898
 msgid "There is no table to format."
 msgstr "Nie ma tabeli do sformatowania."
 
-#: verso/document.py:914
+#: verso/document.py:929
 msgid "Formatting is available only for JSON files."
 msgstr "Formatowanie działa tylko dla plików JSON."
 
-#: verso/document.py:920
+#: verso/document.py:935
 #, python-brace-format
 msgid "Invalid JSON. {error}"
 msgstr "Niepoprawny JSON. {error}"
 
-#: verso/document.py:1192
+#: verso/document.py:1199
 msgid "Page %N of %Q"
 msgstr "Strona %N z %Q"
 
-#: verso/document.py:1445
+#: verso/document.py:1452
 #, python-brace-format
 msgid "{position} of {total}"
 msgstr "{position} z {total}"
 
-#: verso/document.py:1445
+#: verso/document.py:1452
 msgid "No matches"
 msgstr "Brak wyników"
 
-#: verso/document.py:1458
+#: verso/document.py:1465
 #, python-brace-format
 msgid "Replaced {count} match"
 msgid_plural "Replaced {count} matches"
@@ -517,7 +539,7 @@ msgstr[0] "Zamieniono {count} wystąpienie"
 msgstr[1] "Zamieniono {count} wystąpienia"
 msgstr[2] "Zamieniono {count} wystąpień"
 
-#: verso/document.py:1494
+#: verso/document.py:1501
 #, python-brace-format
 msgid "Could not keep a backup of unsaved changes: {error}"
 msgstr "Nie udało się zachować kopii niezapisanych zmian: {error}"

@@ -15,11 +15,14 @@
       <li>Live Markdown preview with tables, task lists, footnotes, math, diagrams and highlighted code</li>
       <li>Edit, preview or both side by side, with synchronized scrolling</li>
       <li>Outline of the headings to move around long documents</li>
-      <li>JSON, YAML, TOML and XML as a collapsible, searchable tree</li>
+      <li>Writing helpers: lists continue on Enter, shortcuts for bold, italic, code and links, pasted images saved next to the document, aligned tables</li>
+      <li>JSON, JSON with comments, JSON Lines, YAML, TOML, XML, INI and .env files as a collapsible, searchable tree</li>
       <li>CSV and TSV as a table you can sort and filter</li>
       <li>Syntax highlighting for many languages and all GtkSourceView style schemes</li>
+      <li>Focus mode that hides everything but the text</li>
+      <li>Indentation from the project's .editorconfig</li>
       <li>Unsaved changes survive closing the app and restarting the computer</li>
-      <li>Tabs, find and replace, spell checking, printing and export to PDF</li>
+      <li>Tabs, find and replace, spell checking, printing and export to PDF or HTML</li>
     </ul>
   </description>
   <launchable type="desktop-id">io.github.maciejziel.Verso.desktop</launchable>
