@@ -36,17 +36,19 @@ def continue_line(line):
     return (None, None)
 
 
-def in_literal_block(lines):
-    """True when the line after these lines is inside a fenced code block or the front matter,
-    where list markers are just text."""
+def literal_lines(lines):
+    """For each line, whether it is inside a fenced code block or the front matter (one pass)."""
+    flags = []
     fence = None
     front = bool(lines) and lines[0].rstrip() == "---"
     for index, line in enumerate(lines):
         if front:
+            flags.append(True)
             if index > 0 and line.rstrip() in ("---", "..."):
                 front = False
             continue
         match = _FENCE.match(line)
+        flags.append(fence is not None or match is not None)
         if match is None:
             continue
         mark = match.group(1)
@@ -54,7 +56,13 @@ def in_literal_block(lines):
             fence = mark
         elif mark[0] == fence[0] and len(mark) >= len(fence) and not line.strip().strip(mark[0]):
             fence = None
-    return front or fence is not None
+    return flags
+
+
+def in_literal_block(lines):
+    """True when the line after these lines is inside a fenced code block or the front matter,
+    where list markers are just text."""
+    return bool(lines) and literal_lines(lines + [""])[-1]
 
 
 def toggle_wrap(text, marker):
@@ -102,16 +110,26 @@ def _is_delimiter(cells):
 
 
 def is_table_start(lines, index):
-    """A header row followed by a delimiter row such as | --- | :---: |."""
-    return (index + 1 < len(lines) and "|" in lines[index] and "|" in lines[index + 1]
-            and _is_delimiter(split_row(lines[index + 1])))
+    """A header row followed by a delimiter row with as many cells (| --- | :---: |), as in GFM."""
+    if index + 1 >= len(lines) or "|" not in lines[index] or "|" not in lines[index + 1]:
+        return False
+    delimiter = split_row(lines[index + 1])
+    return _is_delimiter(delimiter) and len(delimiter) == len(split_row(lines[index]))
+
+
+def _indented_code(lines, index):
+    """Four spaces or a tab after a blank line start an indented code block, not a table."""
+    line = lines[index]
+    indent = len(line) - len(line.lstrip(" "))
+    return (indent >= 4 or line.startswith("\t")) and (index == 0 or not lines[index - 1].strip())
 
 
 def find_tables(lines):
     """(start, end) line ranges, end exclusive, of the tables outside code blocks and front matter."""
+    literal = literal_lines(lines)
     tables, index = [], 0
     while index < len(lines):
-        if is_table_start(lines, index) and not in_literal_block(lines[:index]):
+        if not literal[index] and is_table_start(lines, index) and not _indented_code(lines, index):
             end = index + 2
             while end < len(lines) and "|" in lines[end] and lines[end].strip():
                 end += 1
@@ -130,11 +148,13 @@ def _width(text):
 
 
 def format_table(lines):
-    """The table's lines with aligned columns; the delimiter row keeps each column's alignment."""
+    """The table's lines with aligned columns; the delimiter row keeps each column's alignment.
+    Cells past the header's count (GFM ignores them) stay at the end of their row as they were."""
     indent = lines[0][: len(lines[0]) - len(lines[0].lstrip())]
     rows = [split_row(line) for line in lines]
-    count = max(len(row) for row in rows)
-    rows = [row + [""] * (count - len(row)) for row in rows]
+    count = len(rows[0])
+    extra = [row[count:] for row in rows]
+    rows = [row[:count] + [""] * (count - len(row)) for row in rows]
     aligns = []
     for cell in rows[1]:
         left, right = cell.startswith(":"), cell.endswith(":") and len(cell) > 1
@@ -162,5 +182,37 @@ def format_table(lines):
     result = []
     for i, row in enumerate(rows):
         cells = [delimiter(w, a) if i == 1 else pad(c, w, a) for c, w, a in zip(row, widths, aligns)]
-        result.append(f"{indent}| " + " | ".join(cells) + " |")
+        result.append(f"{indent}| " + " | ".join(cells + extra[i]) + " |")
     return result
+
+
+def _cell_bounds(line):
+    """(start, end) of each cell's span between the row's pipes (outer pipes excluded)."""
+    pipes = [match.start() for match in re.finditer(r"(?<!\\)\|", line)]
+    edges = [-1] + pipes + [len(line)]
+    spans = [(edges[i] + 1, edges[i + 1]) for i in range(len(edges) - 1)]
+    if pipes and not line[: pipes[0]].strip():
+        spans = spans[1:]  # nothing before a leading pipe
+    if pipes and len(spans) > 1 and not line[pipes[-1] + 1 :].strip():
+        spans = spans[:-1]  # nor after a trailing one
+    return spans
+
+
+def cell_at(line, column):
+    """(cell index, characters of the cell's text before the column) for a column in a table row."""
+    for index, (start, end) in enumerate(_cell_bounds(line)):
+        if column <= end:
+            return index, len(line[start:max(start, column)].lstrip())
+    return max(len(_cell_bounds(line)) - 1, 0), 0
+
+
+def column_of(line, cell, offset):
+    """The column offset characters into the text of a cell: the inverse of cell_at."""
+    spans = _cell_bounds(line)
+    if not spans:
+        return len(line)
+    start, end = spans[min(cell, len(spans) - 1)]
+    span = line[start:end]
+    text_start = start + len(span) - len(span.lstrip())
+    text_end = start + len(span.rstrip())
+    return min(text_start + offset, max(text_start, text_end))

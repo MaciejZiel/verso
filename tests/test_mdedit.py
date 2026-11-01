@@ -84,3 +84,16 @@ def test_find_tables():
     lines = ["text", "|a|b|", "|-|-|", "|1|2|", "", "```", "|a|b|", "|-|-|", "```", "x | y", "--|--"]
     assert find_tables(lines) == [(1, 4), (9, 11)]
     assert find_tables(["a | b", "not a delimiter"]) == []
+    assert find_tables(["a | b | c", "--|--"]) == []  # GFM: the delimiter row needs as many cells
+    assert find_tables(["", "    x | y", "    --|--"]) == []  # indented code
+    assert find_tables(["- item", "    x | y", "    --|--"]) == [(1, 3)]  # a table in a list item
+
+
+def test_table_cells_and_cursor():
+    from verso.mdedit import cell_at, column_of, format_table
+
+    assert format_table(["|a|b|", "|-|-|", "|1|2|3|"])[2] == "| 1   | 2   | 3 |"  # extra cells stay
+    line = "|ccc|1|"
+    formatted = format_table(["|a|bb|", "|-|-:|", line])[2]
+    assert cell_at(line, 5) == (1, 0) and formatted[column_of(formatted, 1, 0)] == "1"
+    assert cell_at("| a   |  bb |", 10) == (1, 1) and column_of("| a   |  bb |", 1, 1) == 10

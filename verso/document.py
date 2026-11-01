@@ -101,8 +101,8 @@ class Document(Gtk.Box):
         self._preview_line = 0.0  # top line of the preview, as reported by the page
         self._zoom = 1.0
         self._focus_mode = False
-        self._focus_tick = 0
-        self._focus_width = 0
+        self._focus_handler = 0
+        self._focus_layout = None  # (width, character width) the margins were computed for
 
         self._build_banner()
         self._build_search()
@@ -111,8 +111,7 @@ class Document(Gtk.Box):
         # tabs in the background and plain text files never start one.
         self.webview = None
         self.preview_box = Gtk.Box(hexpand=True, vexpand=True, visible=False)
-        self._load_waiters = {}  # key → callback to run once the preview page has loaded
-        self._load_handler = 0
+        self._pending = set()  # keys of prints waiting for the preview
         self.connect("map", self._on_map)
 
         self.paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL, vexpand=True, hexpand=True)
@@ -551,27 +550,33 @@ class Document(Gtk.Box):
         self._update_statusbar_visibility()
         self._update_outline()
         self.view.set_show_line_numbers(settings.get().get_boolean("show-line-numbers") and not active)  # far from a centred text
+        adjustment = self.source_scroller.get_hadjustment()
         if active:
-            self._focus_width = 0
-            self._focus_tick = self.view.add_tick_callback(self._center_text)
+            # The horizontal adjustment changes when the view is resized or its font re-wraps the text:
+            # the only moments the column needs recomputing (GTK 4 has no resize signal).
+            self._focus_layout = None
+            self._focus_handler = adjustment.connect("changed", lambda *_: self._center_text())
+            GLib.idle_add(lambda: self._center_text() and False)
         else:
-            if self._focus_tick:
-                self.view.remove_tick_callback(self._focus_tick)
-                self._focus_tick = 0
+            if self._focus_handler:
+                adjustment.disconnect(self._focus_handler)
+                self._focus_handler = 0
             self.view.set_left_margin(6)
             self.view.set_right_margin(12)
 
-    def _center_text(self, view, _clock):
-        # A tick callback rather than a size signal: GTK 4 has none, and this costs one comparison a frame.
-        width = view.get_width()
-        if width != self._focus_width:
-            self._focus_width = width
-            metrics = view.get_pango_context().get_metrics(None, None)
-            column = self.FOCUS_COLUMNS * metrics.get_approximate_char_width() / Pango.SCALE
-            margin = max(24, int((width - column) / 2))
-            view.set_left_margin(margin)
-            view.set_right_margin(margin)
-        return GLib.SOURCE_CONTINUE
+    def _center_text(self):
+        if not self._focus_mode:
+            return
+        view = self.view
+        metrics = view.get_pango_context().get_metrics(None, None)
+        layout = (view.get_width(), metrics.get_approximate_char_width())
+        if layout == self._focus_layout or not layout[0]:
+            return
+        self._focus_layout = layout
+        column = self.FOCUS_COLUMNS * layout[1] / Pango.SCALE
+        margin = max(24, int((layout[0] - column) / 2))
+        view.set_left_margin(margin)
+        view.set_right_margin(margin)
 
     def show_goto(self):
         if self.mode == "preview":
@@ -887,6 +892,7 @@ class Document(Gtk.Box):
         cursor = buffer.get_iter_at_mark(buffer.get_insert())
         line, column = cursor.get_line(), cursor.get_line_offset()
         current = [(start, end) for start, end in tables if start <= line < end]
+        cell = mdedit.cell_at(lines[line], column) if current else None  # the cursor stays in its cell
         changed = False
         buffer.begin_user_action()
         for start, end in reversed(current or tables):  # from the bottom, so earlier line numbers hold
@@ -906,7 +912,8 @@ class Document(Gtk.Box):
             end = it.copy()
             if not end.ends_line():
                 end.forward_to_line_end()
-            it.set_line_offset(min(column, end.get_line_offset()))
+            text = buffer.get_text(it, end, True)
+            it.set_line_offset(mdedit.column_of(text, *cell) if cell else min(column, len(text)))
             buffer.place_cursor(it)
 
     def format_json(self):
@@ -960,7 +967,8 @@ class Document(Gtk.Box):
             options = {
                 "theme": prefs.get_string("preview-theme"),
                 "width": prefs.get_string("preview-width"),
-                "outline": self.outline_visible,  # the sidebar replaces the preview's own table of contents
+                # The sidebar replaces the preview's own table of contents; focus mode shows neither.
+                "outline": self.outline_visible or self._focus_mode,
             }
             self._run_js(f"window.verso.setOptions({json.dumps(options)})")
 
@@ -1056,46 +1064,35 @@ class Document(Gtk.Box):
     def print_document(self, export_file=None, on_done=None):
         """Prints (or, with export_file, writes a PDF). Files with a preview print the rendered preview."""
         window = self.get_root()
-        if self.kind and not self._preview_ready and not self._html_shown:
-            # The preview was never shown or its page is still loading: print once it has loaded.
-            self._after_preview_loads("print", lambda: self.print_document(export_file, on_done))
-            return
-        if not (self.kind and self._preview_ready):
+        if not self.kind:
             self._print_source(window, export_file, on_done)
             return
-        self._push_preview(force=True)  # the preview may be stale while the editor alone is shown
-        self._when_preview_settled(lambda: self._print_preview(window, export_file, on_done))
-
-    def _after_preview_loads(self, key, callback):
-        """Makes the preview if needed and runs callback once its page has loaded. A second request
-        with the same key while the first one waits is dropped (Ctrl+P pressed twice)."""
-        if key in self._load_waiters:
-            return
-        self._load_waiters[key] = callback
-        self._ensure_preview()
-        if self._load_handler:
-            return
-
-        def loaded(_webview, event):
-            if event == WebKit.LoadEvent.FINISHED:
-                self.webview.disconnect(self._load_handler)
-                self._load_handler = 0
-                waiters, self._load_waiters = self._load_waiters, {}
-                for waiter in waiters.values():
-                    GLib.idle_add(lambda waiter=waiter: waiter() and False)
-
-        self._load_handler = self.webview.connect("load-changed", loaded)
+        # Ctrl+P pressed twice while the preview loads gives one print, not two.
+        self._with_settled_preview(lambda: self._print_preview(window, export_file, on_done), key="print")
 
     def export_html(self, target, on_done):
         """Writes the rendered Markdown preview as a standalone HTML file; on_done(True/False)."""
         if self.kind != "markdown":
             on_done(False)
             return
-        if not self._preview_ready:
-            self._after_preview_loads("export-html", lambda: self.export_html(target, on_done))
-            return
+        self._with_settled_preview(lambda: self._write_html(target, on_done))
+
+    def _with_settled_preview(self, callback, key=None):
+        """Runs callback once the preview shows the current text, making the preview first if this tab
+        never showed it. A request whose key is already waiting is dropped."""
+        if key is not None:
+            if key in self._pending:
+                return
+            self._pending.add(key)
+
+        def run():
+            self._pending.discard(key)
+            if self.webview is not None:  # not after shutdown()
+                callback()
+
+        self._ensure_preview()
         self._push_preview(force=True)  # the preview may be stale while the editor alone is shown
-        self._when_preview_settled(lambda: self._write_html(target, on_done))
+        self._when_preview_settled(run)
 
     def _write_html(self, target, on_done):
         script = ("JSON.stringify({classes: document.documentElement.className,"
@@ -1125,15 +1122,17 @@ class Document(Gtk.Box):
         self.webview.evaluate_javascript(script, -1, None, None, None, rendered, None)
 
     def _when_preview_settled(self, callback):
-        """Runs callback once the preview shows the current text: after an HTML reload has finished,
-        and with extra time when math or diagrams render asynchronously."""
-        if self._html_shown and not self._preview_ready:
+        """Runs callback once the preview shows the current text: after any page load in progress has
+        finished (a new preview, an HTML reload, a new base folder), and with extra time when math
+        or diagrams render asynchronously."""
+        if not self._preview_ready:
             handler = None
 
             def finished(_webview, event):
                 if event == WebKit.LoadEvent.FINISHED:
-                    self.webview.disconnect(handler)
-                    GLib.timeout_add(100, lambda: callback() and False)
+                    _webview.disconnect(handler)
+                    # The loaded page gets its content pushed next; wait for that as for a ready page.
+                    GLib.timeout_add(100, lambda: self._when_preview_settled(callback) and False)
 
             handler = self.webview.connect("load-changed", finished)
             return
@@ -1551,9 +1550,9 @@ class Document(Gtk.Box):
         if self._spelling_idle:
             GLib.source_remove(self._spelling_idle)
             self._spelling_idle = 0
-        if self._focus_tick:
-            self.view.remove_tick_callback(self._focus_tick)
-            self._focus_tick = 0
+        if self._focus_handler:
+            self.source_scroller.get_hadjustment().disconnect(self._focus_handler)
+            self._focus_handler = 0
         settings.get().disconnect(self._settings_handler)
         self.statusbar.shutdown()
         Adw.StyleManager.get_default().disconnect(self._style_handler)
@@ -1568,6 +1567,7 @@ class Document(Gtk.Box):
             self._outline_timer = 0
         if self.webview is not None:
             self.webview.terminate_web_process()
+            self.webview = None  # waiting prints and exports see the tab is gone
 
     # ---------- pomocnicze ----------
 

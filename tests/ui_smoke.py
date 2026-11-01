@@ -509,10 +509,13 @@ def steps(win):
     buf.place_cursor(buf.get_end_iter())
     check("no list continuation in code blocks", not enter())
     buf.set_text("Tekst\n\n|a|bb|\n|-|-:|\n|ccc|1|\n")
-    buf.place_cursor(buf.get_iter_at_line(3)[1])
+    cursor = buf.get_iter_at_line(4)[1]
+    cursor.set_line_offset(5)  # before the "1"
+    buf.place_cursor(cursor)
     new_win.lookup_action("format-json").activate(None)
+    after = buf.get_iter_at_mark(buf.get_insert())
     check("ctrl+shift+i aligns the markdown table", buf.get_property("text")
-          == "Tekst\n\n| a   |  bb |\n| --- | --: |\n| ccc |   1 |\n" and buf.get_iter_at_mark(buf.get_insert()).get_line() == 3)
+          == "Tekst\n\n| a   |  bb |\n| --- | --: |\n| ccc |   1 |\n" and after.get_line() == 4 and after.get_char() == "1")
     # tryb skupienia: bez pasków, tekst w wyśrodkowanej kolumnie, F11 wraca
     new_win.lookup_action("focus-mode").activate(None)
     yield 600
