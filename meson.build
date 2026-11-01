@@ -1,6 +1,6 @@
 project(
   'verso',
-  version: '0.9.0',
+  version: '1.0.0',
   meson_version: '>= 1.0.0',
   license: 'MIT',
 )

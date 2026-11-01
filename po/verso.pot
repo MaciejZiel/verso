@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: verso\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-01 12:32+0100\n"
+"POT-Creation-Date: 2026-11-01 12:44+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -128,7 +128,7 @@ msgid "Focus mode: only the text, full screen"
 msgstr ""
 
 #: data/io.github.maciejziel.Verso.metainfo.xml.in:73
-msgid "First preview release."
+msgid "First release."
 msgstr ""
 
 #: data/io.github.maciejziel.Verso.gschema.xml:7

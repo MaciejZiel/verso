@@ -68,9 +68,9 @@
     <binary>verso</binary>
   </provides>
   <releases>
-    <release version="0.9.0" date="2026-10-31">
+    <release version="1.0.0" date="2026-11-01">
       <description>
-        <p>First preview release.</p>
+        <p>First release.</p>
       </description>
     </release>
   </releases>

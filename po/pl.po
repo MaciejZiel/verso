@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: verso\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-01 12:32+0100\n"
+"POT-Creation-Date: 2026-11-01 12:44+0100\n"
 "PO-Revision-Date: 2026-10-31 22:09+0100\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -143,8 +143,8 @@ msgid "Focus mode: only the text, full screen"
 msgstr "Tryb skupienia: tylko tekst, na pełnym ekranie"
 
 #: data/io.github.maciejziel.Verso.metainfo.xml.in:73
-msgid "First preview release."
-msgstr "Pierwsze wydanie testowe."
+msgid "First release."
+msgstr "Pierwsze wydanie."
 
 #: data/io.github.maciejziel.Verso.gschema.xml:7
 msgid "Window width"
@@ -1052,16 +1052,3 @@ msgstr "Otwórz ponownie z kodowaniem"
 #: verso/outline.py:34
 msgid "No headings"
 msgstr "Brak nagłówków"
-
-#~ msgid "Invalid JSON."
-#~ msgstr "Niepoprawny JSON."
-
-#~ msgid "Documents of the last session"
-#~ msgstr "Dokumenty ostatniej sesji"
-
-#~ msgid "Selected tab of the last session"
-#~ msgstr "Wybrana karta ostatniej sesji"
-
-#, python-brace-format
-#~ msgid "The file uses the {encoding} encoding; saving converts it to UTF-8."
-#~ msgstr "Plik używa kodowania {encoding}; zapis zamieni je na UTF-8."
