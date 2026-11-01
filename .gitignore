@@ -6,3 +6,4 @@ build/
 _build/
 .flatpak-builder/
 repo/
+.claude/settings.local.json
