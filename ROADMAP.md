@@ -56,7 +56,7 @@ Status legend: [ ] todo, [~] in progress, [x] done.
 - [x] Print dialog in the Flatpak (through the print portal; printers and "Print to File" listed), PDF export
 - [ ] `--filesystem=home` justified in the submission: relative images, links between files, file watching
 - [x] GitHub Actions: build the Flatpak on every push (`.github/workflows/flatpak.yml`)
-- [ ] Public repo, `v1.0.0` tag and GitHub release
+- [x] Public repo, `v1.0.0` tag and GitHub release
 - [ ] Flathub submission PR; app verification through the GitHub account
 
 ## After 1.0
