@@ -15,7 +15,7 @@ gi.require_version("WebKit", "6.0")
 gi.require_version("Spelling", "1")
 from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk, GtkSource, Pango, Spelling, WebKit  # noqa: E402
 
-from . import fonts, md, mdedit, render, session, settings  # noqa: E402
+from . import editorconfig, fonts, md, mdedit, render, session, settings  # noqa: E402
 from .outline import Outline  # noqa: E402
 from .preferences import resolve_scheme  # noqa: E402
 from .statusbar import StatusBar  # noqa: E402
@@ -94,6 +94,7 @@ class Document(Gtk.Box):
         self._save_encoding = None  # set when the user picks another encoding for saving
         self._save_newline = None
         self._indent_override = None  # (insert_spaces, width) chosen in the status bar for this document
+        self._editorconfig = (None, None)  # (insert_spaces, width) from the project's .editorconfig
         self.draft_id = None  # set while unsaved text is kept in the drafts folder
         self._autosave_timer = 0
         self._saving = False
@@ -397,6 +398,9 @@ class Document(Gtk.Box):
             language = manager.get_language(fallback) if fallback else None
         self.buffer.set_language(language)
         self._update_spelling()
+        path = self.file.get_path() if self.file else None
+        self._editorconfig = editorconfig.indentation(editorconfig.properties(path)) if path else (None, None)
+        self._apply_editor_settings()
         self._update_outline()
 
     def save(self, file=None, callback=None):
@@ -504,7 +508,12 @@ class Document(Gtk.Box):
         view.set_highlight_current_line(prefs.get_boolean("highlight-current-line"))
         view.set_show_right_margin(prefs.get_boolean("show-right-margin"))
         view.set_right_margin_position(prefs.get_uint("right-margin-position"))
-        spaces, width = self._indent_override or (prefs.get_boolean("insert-spaces"), prefs.get_uint("tab-width"))
+        # The status bar choice wins, then the project's .editorconfig, then the preferences.
+        ec_spaces, ec_width = self._editorconfig
+        spaces, width = self._indent_override or (
+            prefs.get_boolean("insert-spaces") if ec_spaces is None else ec_spaces,
+            prefs.get_uint("tab-width") if ec_width is None else ec_width,
+        )
         view.set_tab_width(width)
         view.set_indent_width(-1)  # = tab width
         view.set_insert_spaces_instead_of_tabs(spaces)

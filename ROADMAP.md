@@ -21,7 +21,7 @@ Status legend: [ ] todo, [~] in progress, [x] done.
 - [x] Autosave drafts: unsaved documents survive closing the app and a reboot
 - [x] Overview map (`GtkSource.Map`) next to the editor
 - [x] Preferences: style scheme (all GtkSourceView schemes with live previews), custom font and size, tab width, spaces or tabs, line numbers, current-line highlight, visible whitespace, right margin, bracket auto-pairing, word wrap
-- [ ] Optional `.editorconfig` support
+- [x] `.editorconfig` support: indent_style, indent_size and tab_width (the status bar choice still wins)
 - [x] Markdown writing: list and quote continuation, Ctrl+B / Ctrl+I / Ctrl+` / Ctrl+K, links from pasted URLs, pasted images saved to `images/` next to the file, table alignment (Ctrl+Shift+I)
 - [x] Focus mode (F11): full screen, no bars, the text in a centred column
 - [x] Outline sidebar for Markdown (F9): headings, current section, jump to a section in the editor or the preview

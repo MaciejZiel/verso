@@ -516,6 +516,17 @@ def steps(win):
     after = buf.get_iter_at_mark(buf.get_insert())
     check("ctrl+shift+i aligns the markdown table", buf.get_property("text")
           == "Tekst\n\n| a   |  bb |\n| --- | --: |\n| ccc |   1 |\n" and after.get_line() == 4 and after.get_char() == "1")
+    # .editorconfig: wcięcia projektu, a wybór z paska stanu nadal wygrywa
+    Path(f"{S}/e2e/ec").mkdir(exist_ok=True)
+    Path(f"{S}/e2e/ec/.editorconfig").write_text("root = true\n[*.py]\nindent_style = tab\nindent_size = 3\n")
+    Path(f"{S}/e2e/ec/a.py").write_text("x = 1\n")
+    ec_doc = new_win.open_file(Gio.File.new_for_path(f"{S}/e2e/ec/a.py"))
+    yield 500
+    check(".editorconfig sets the indentation", ec_doc.view.get_tab_width() == 3 and not ec_doc.view.get_insert_spaces_instead_of_tabs())
+    ec_doc.set_indent_override(True, 5)
+    check("status bar choice beats .editorconfig", ec_doc.view.get_tab_width() == 5 and ec_doc.view.get_insert_spaces_instead_of_tabs())
+    new_win.tab_view.close_page(new_win.tab_view.get_page(ec_doc))
+    yield 200
     # tryb skupienia: bez pasków, tekst w wyśrodkowanej kolumnie, F11 wraca
     new_win.lookup_action("focus-mode").activate(None)
     yield 600

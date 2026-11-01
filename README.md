@@ -15,7 +15,7 @@ A text editor for GNOME that shows what your files look like while you write the
 - **HTML and SVG** previews; HTML runs without scripts
 - Preview themes (GitHub, Document, Reader), print, export to PDF or to a standalone HTML file
 - Unsaved changes are kept as drafts: they survive closing Verso, a crash or a restart
-- Encodings, line endings and indentation per document; files changed on disk are noticed
+- Encodings, line endings and indentation per document, indentation from the project's `.editorconfig`; files changed on disk are noticed
 - Tabs, find and replace, go to line, spell checking, overview map, dark mode, session restore
 - Works offline: KaTeX and Mermaid ship with the app, the preview never loads anything from the network
 
