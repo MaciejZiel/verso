@@ -200,7 +200,12 @@ def steps(win):
     for name, content in files.items():
         Path(f"{S}/e2e/{name}").write_text(content)
         opened[name] = win.open_file(Gio.File.new_for_path(f"{S}/e2e/{name}"))
-    yield 1500
+    yield 600
+    check("background tabs start no web process", opened["dane.csv"].webview is None and opened["ikona.svg"].webview is not None)
+    for doc in opened.values():
+        win.tab_view.set_selected_page(win.tab_view.get_page(doc))
+        yield 150
+    yield 1200
     out = {}
     csv_doc = opened["dane.csv"]
     js_value(csv_doc.webview, "document.getElementById('json-count').textContent", out, "rows")
@@ -230,13 +235,22 @@ def steps(win):
     check("xml tree", "Wiadomości" in out.get("xml", ""))
     check("html preview without scripts", out.get("html") == "Nagłówek")
     check("svg preview", out.get("svg") == "img")
-    check("no spell check in data files", not csv_doc.spelling.get_enabled() and csv_doc.statusbar.words.get_text() == "")
+    check("no spell check in data files", csv_doc.spelling is not None and not csv_doc.spelling.get_enabled() and csv_doc.statusbar.words.get_text() == "")
     for doc in opened.values():
         win.tab_view.close_page(win.tab_view.get_page(doc))
     yield 400
     # eksport do PDF: z podglądu (Markdown) i ze źródła (zwykły tekst)
     pdf_results = {}
     md.print_document(export_file=Gio.File.new_for_path(f"{S}/e2e/preview.pdf"), on_done=lambda ok: pdf_results.setdefault("md", ok))
+    Path(f"{S}/e2e/hidden.md").write_text("# Ukryty\n\nTekst.\n")
+    hidden = win.open_file(Gio.File.new_for_path(f"{S}/e2e/hidden.md"))
+    hidden_page = win.tab_view.get_page(hidden)
+    win.tab_view.set_selected_page(win.tab_view.get_page(md))
+    yield 300
+    hidden.mode = "edit"  # as if restored in edit mode, never shown
+    check("unshown tab has no preview yet", hidden.webview is None)
+    hidden.print_document(export_file=Gio.File.new_for_path(f"{S}/e2e/hidden.pdf"), on_done=lambda ok: pdf_results.setdefault("hidden", ok))
+    hidden.print_document(export_file=Gio.File.new_for_path(f"{S}/e2e/hidden.pdf"), on_done=lambda ok: pdf_results.setdefault("hidden2", ok))
     plain = win.new_document()
     plain.buffer.set_text("def f():\n    return 42\n" * 30)
     plain.print_document(export_file=Gio.File.new_for_path(f"{S}/e2e/source.pdf"), on_done=lambda ok: pdf_results.setdefault("plain", ok))
@@ -249,6 +263,9 @@ def steps(win):
     for dialog_window in [w for w in Gtk.Window.list_toplevels() if w is not win and isinstance(w, Gtk.Window) and w.get_visible()]:
         dialog_window.close()
     check("export source to pdf", pdf_results.get("plain") and is_pdf(f"{S}/e2e/source.pdf"))
+    check("export of a never shown preview waits for it, once", ("hidden" in pdf_results) and "hidden2" not in pdf_results
+          and (pdf_results["hidden"] is None or is_pdf(f"{S}/e2e/hidden.pdf")))
+    win.tab_view.close_page(hidden_page)
     plain.buffer.set_modified(False)
     win.tab_view.close_page(win.tab_view.get_page(plain))
     # motywy podglądu

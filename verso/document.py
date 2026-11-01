@@ -98,15 +98,21 @@ class Document(Gtk.Box):
         self._saving = False
         self._outline_timer = 0
         self._preview_line = 0.0  # top line of the preview, as reported by the page
+        self._zoom = 1.0
 
         self._build_banner()
         self._build_search()
         self._build_editor()
-        self._build_preview()
+        # The WebView (and its web process, tens of MB) is made only once the preview is shown:
+        # tabs in the background and plain text files never start one.
+        self.webview = None
+        self.preview_box = Gtk.Box(hexpand=True, vexpand=True, visible=False)
+        self._print_waiting = False
+        self.connect("map", self._on_map)
 
         self.paned = Gtk.Paned(orientation=Gtk.Orientation.HORIZONTAL, vexpand=True, hexpand=True)
         self.paned.set_start_child(self.editor_box)
-        self.paned.set_end_child(self.webview)
+        self.paned.set_end_child(self.preview_box)
         self.paned.set_resize_start_child(True)
         self.paned.set_resize_end_child(True)
         self.paned.set_shrink_start_child(False)
@@ -165,16 +171,27 @@ class Document(Gtk.Box):
         self.buffer.connect("modified-changed", self._on_modified_changed)
         self.buffer.connect("changed", self._on_buffer_changed)
 
-        # Sprawdzanie pisowni jak w Edytorze tekstu (libspelling, słownik z systemu).
-        self.spelling = Spelling.TextBufferAdapter.new(self.buffer, Spelling.Checker.get_default())
-        self.view.set_extra_menu(self.spelling.get_menu_model())
-        self.view.insert_action_group("spelling", self.spelling)
+        # Spell checking as in Text Editor (libspelling, system dictionaries). Loading the dictionaries
+        # blocks for a quarter of a second, so the adapter is made once the tab is shown and its
+        # preview, if any, has loaded (see _schedule_spelling).
+        self.spelling = None
+        self._spelling_idle = 0
+        self._spelling_delay = 0
 
         self.search_settings = GtkSource.SearchSettings(wrap_around=True)
         self.search_context = GtkSource.SearchContext(buffer=self.buffer, settings=self.search_settings)
         self.search_context.connect("notify::occurrences-count", lambda *_: self._update_search_label())
 
-    def _build_preview(self):
+    def _on_map(self, *_):
+        if self.mode != "edit" and self.webview is None:
+            self._ensure_preview()
+            self._focus_main()  # set_mode could not focus the preview while it did not exist
+        # Normally once the preview has loaded (_on_load_changed); this is the fallback.
+        self._schedule_spelling(delay=0 if self.mode == "edit" else 2000)
+
+    def _ensure_preview(self):
+        if self.webview is not None:
+            return
         content = WebKit.UserContentManager()
         content.register_script_message_handler("verso", None)
         content.connect("script-message-received::verso", self._on_preview_message)
@@ -187,6 +204,9 @@ class Document(Gtk.Box):
         settings.set_enable_back_forward_navigation_gestures(False)
         self.webview.connect("decide-policy", self._on_decide_policy)
         self.webview.connect("load-changed", self._on_load_changed)
+        self.webview.set_zoom_level(self._zoom)
+        self.preview_box.append(self.webview)
+        self.webview.set_background_color(_rgba("#1e1e1e" if Adw.StyleManager.get_default().get_dark() else "#ffffff"))
         self._load_page()
 
     def _build_search(self):
@@ -369,8 +389,7 @@ class Document(Gtk.Box):
         if language is None and self.kind == "markdown":
             language = manager.get_language("markdown")
         self.buffer.set_language(language)
-        # JSON i kod nie potrzebują słownika; Markdown i zwykły tekst tak.
-        self.spelling.set_enabled(self.kind not in render.DATA_KINDS and settings.get().get_boolean("spellcheck"))
+        self._update_spelling()
         self._update_outline()
 
     def save(self, file=None, callback=None):
@@ -499,7 +518,7 @@ class Document(Gtk.Box):
                 GtkSource.SpaceTypeFlags.SPACE | GtkSource.SpaceTypeFlags.TAB | GtkSource.SpaceTypeFlags.NBSP,
             )
         drawer.set_enable_matrix(prefs.get_boolean("show-whitespace"))
-        self.spelling.set_enabled(self.kind not in render.DATA_KINDS and prefs.get_boolean("spellcheck"))
+        self._update_spelling()
         self._update_statusbar_visibility()
         self.statusbar.update()
 
@@ -584,16 +603,15 @@ class Document(Gtk.Box):
         self.mode = mode
         self.editor_box.set_visible(mode in ("edit", "split"))
         self._update_statusbar_visibility()
-        self.webview.set_visible(mode in ("split", "preview"))
+        self.preview_box.set_visible(mode in ("split", "preview"))
+        if mode != "edit" and self.get_mapped():
+            self._ensure_preview()
         if mode == "split":
             GLib.idle_add(self._center_paned)
             self._schedule_preview(immediate=True)
         elif mode == "preview":
             self._schedule_preview(immediate=True)
-        if mode == "preview":
-            self.webview.grab_focus()
-        else:
-            self.view.grab_focus()
+        self._focus_main()
         self._update_outline_current()
         self.emit("state-changed")
 
@@ -609,14 +627,17 @@ class Document(Gtk.Box):
         self.set_mode("preview" if self.mode == "edit" else "edit")
 
     def set_zoom(self, factor):
-        self.webview.set_zoom_level(factor)
+        self._zoom = factor
+        if self.webview is not None:
+            self.webview.set_zoom_level(factor)
 
     def _apply_theme(self):
         dark = Adw.StyleManager.get_default().get_dark()
         scheme = resolve_scheme(settings.get().get_string("style-scheme"), dark)
         if scheme is not None:
             self.buffer.set_style_scheme(scheme)
-        self.webview.set_background_color(_rgba("#1e1e1e" if dark else "#ffffff"))
+        if self.webview is not None:
+            self.webview.set_background_color(_rgba("#1e1e1e" if dark else "#ffffff"))
         if self._preview_ready:
             self._run_js(f"window.verso.setDark({json.dumps(dark)})")
 
@@ -653,6 +674,7 @@ class Document(Gtk.Box):
         if event != WebKit.LoadEvent.FINISHED:
             return
         self._preview_ready = True
+        self._schedule_spelling()
         if self._html_shown:
             if self._html_scroll:
                 self._run_js(f"window.scrollTo(0, {float(self._html_scroll)})")
@@ -699,6 +721,33 @@ class Document(Gtk.Box):
         self._base_uri = base
         self.webview.load_html(text, base)
 
+    def _schedule_spelling(self, delay=0):
+        """Makes the spell checker when the main loop is idle, after delay ms; an earlier request wins."""
+        if self.spelling is not None:
+            return
+        if self._spelling_idle:
+            if delay or self._spelling_delay == 0:
+                return
+            GLib.source_remove(self._spelling_idle)
+        self._spelling_delay = delay
+        if delay:
+            self._spelling_idle = GLib.timeout_add(delay, self._create_spelling, priority=GLib.PRIORITY_LOW)
+        else:
+            self._spelling_idle = GLib.idle_add(self._create_spelling, priority=GLib.PRIORITY_LOW)
+
+    def _create_spelling(self):
+        self._spelling_idle = 0
+        self.spelling = Spelling.TextBufferAdapter.new(self.buffer, Spelling.Checker.get_default())
+        self.view.set_extra_menu(self.spelling.get_menu_model())
+        self.view.insert_action_group("spelling", self.spelling)
+        self._update_spelling()
+        return GLib.SOURCE_REMOVE
+
+    def _update_spelling(self):
+        # JSON and code need no dictionary; Markdown and plain text do.
+        if self.spelling is not None:
+            self.spelling.set_enabled(self.kind not in render.DATA_KINDS and settings.get().get_boolean("spellcheck"))
+
     def _on_buffer_changed(self, *_):
         self._change_serial += 1
         if not self._loading:
@@ -739,6 +788,22 @@ class Document(Gtk.Box):
     def print_document(self, export_file=None, on_done=None):
         """Prints (or, with export_file, writes a PDF). Files with a preview print the rendered preview."""
         window = self.get_root()
+        if self.kind and not self._preview_ready and not self._html_shown:
+            # The preview was never shown or its page is still loading: print once it has loaded.
+            if self._print_waiting:
+                return  # a print is already waiting for the page
+            self._print_waiting = True
+            self._ensure_preview()
+            handler = None
+
+            def loaded(_webview, event):
+                if event == WebKit.LoadEvent.FINISHED:
+                    self.webview.disconnect(handler)
+                    self._print_waiting = False
+                    GLib.idle_add(lambda: self.print_document(export_file, on_done) and False)
+
+            handler = self.webview.connect("load-changed", loaded)
+            return
         if not (self.kind and self._preview_ready):
             self._print_source(window, export_file, on_done)
             return
@@ -929,8 +994,11 @@ class Document(Gtk.Box):
                 row.grab_focus()
 
     def focus_text(self):
-        (self.webview if self.mode == "preview" else self.view).grab_focus()
+        self._focus_main()
         return True
+
+    def _focus_main(self):
+        (self.webview if self.mode == "preview" and self.webview is not None else self.view).grab_focus()
 
     def go_to_heading(self, line):
         if self.mode in ("edit", "split"):
@@ -942,9 +1010,11 @@ class Document(Gtk.Box):
             self._preview_line = float(line)  # the page does not report scrolls it was told to make
             self._run_js(f"window.verso.scrollToLine({int(line)})")
         if self.mode == "preview":
-            self.webview.grab_focus()
+            self._focus_main()
 
     def _run_js(self, script):
+        if self.webview is None:
+            return
         self.webview.evaluate_javascript(script, -1, None, None, None, None, None)
 
     def _on_decide_policy(self, _webview, decision, decision_type):
@@ -986,11 +1056,12 @@ class Document(Gtk.Box):
     def hide_search(self):
         self.search_revealer.set_reveal_child(False)
         self.search_settings.set_search_text(None)
-        self.webview.get_find_controller().search_finish()
-        (self.webview if self.mode == "preview" else self.view).grab_focus()
+        if self.webview is not None:
+            self.webview.get_find_controller().search_finish()
+        self._focus_main()
 
     def _search_in_preview(self):
-        return self.mode == "preview"
+        return self.mode == "preview" and self.webview is not None
 
     def _on_search_changed(self, entry):
         text = entry.get_text()
@@ -1163,6 +1234,9 @@ class Document(Gtk.Box):
         if self._autosave_timer:
             GLib.source_remove(self._autosave_timer)
             self._autosave_timer = 0
+        if self._spelling_idle:
+            GLib.source_remove(self._spelling_idle)
+            self._spelling_idle = 0
         settings.get().disconnect(self._settings_handler)
         self.statusbar.shutdown()
         Adw.StyleManager.get_default().disconnect(self._style_handler)
@@ -1175,7 +1249,8 @@ class Document(Gtk.Box):
         if self._outline_timer:
             GLib.source_remove(self._outline_timer)
             self._outline_timer = 0
-        self.webview.terminate_web_process()
+        if self.webview is not None:
+            self.webview.terminate_web_process()
 
     # ---------- pomocnicze ----------
 
