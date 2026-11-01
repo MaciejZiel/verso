@@ -2,6 +2,7 @@
 
 import gettext
 import json
+import re
 from gettext import gettext as _
 from gettext import ngettext
 
@@ -14,7 +15,7 @@ gi.require_version("WebKit", "6.0")
 gi.require_version("Spelling", "1")
 from gi.repository import Adw, Gdk, Gio, GLib, GObject, Gtk, GtkSource, Spelling, WebKit  # noqa: E402
 
-from . import fonts, md, render, session, settings  # noqa: E402
+from . import fonts, md, mdedit, render, session, settings  # noqa: E402
 from .outline import Outline  # noqa: E402
 from .preferences import resolve_scheme  # noqa: E402
 from .statusbar import StatusBar  # noqa: E402
@@ -167,6 +168,7 @@ class Document(Gtk.Box):
         pairs = Gtk.EventControllerKey()
         pairs.connect("key-pressed", self._on_editor_key)
         self.view.add_controller(pairs)
+        self.view.connect("paste-clipboard", self._on_paste)
 
         self.buffer.connect("modified-changed", self._on_modified_changed)
         self.buffer.connect("changed", self._on_buffer_changed)
@@ -544,6 +546,8 @@ class Document(Gtk.Box):
     PAIRS = {"(": ")", "[": "]", "{": "}", '"': '"', "'": "'", "`": "`"}
 
     def _on_editor_key(self, _controller, keyval, _code, state):
+        if keyval in (Gdk.KEY_Return, Gdk.KEY_KP_Enter) and self._continue_markdown(state):
+            return True
         if not settings.get().get_boolean("auto-pair"):
             return False
         if state & (Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.ALT_MASK):
@@ -594,6 +598,188 @@ class Document(Gtk.Box):
             buffer.place_cursor(cursor)
         buffer.end_user_action()
         return True
+
+    # ---------- Markdown writing ----------
+
+    def _continue_markdown(self, state):
+        """Enter in a Markdown list or quote starts the next item; on an empty item it ends the list."""
+        modifiers = Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.ALT_MASK | Gdk.ModifierType.SHIFT_MASK
+        if self.kind != "markdown" or state & modifiers or self.buffer.get_has_selection():
+            return False
+        buffer = self.buffer
+        insert = buffer.get_iter_at_mark(buffer.get_insert())
+        start = insert.copy()
+        start.set_line_offset(0)
+        end = insert.copy()
+        if not end.ends_line():
+            end.forward_to_line_end()
+        # Only the text before the cursor counts: Enter before or inside the marker is a plain newline.
+        action, prefix = mdedit.continue_line(buffer.get_text(start, insert, True))
+        if action == "end" and buffer.get_text(insert, end, True).strip():
+            action = None
+        if action is None:
+            return False
+        before = buffer.get_text(buffer.get_start_iter(), start, True).split("\n")[:-1]
+        if mdedit.in_literal_block(before):
+            return False
+        buffer.begin_user_action()
+        if action == "end":
+            buffer.delete(start, end)
+        else:
+            buffer.insert_at_cursor("\n" + prefix)
+        buffer.end_user_action()
+        self.view.scroll_mark_onscreen(buffer.get_insert())
+        return True
+
+    def wrap_selection(self, marker):
+        """Bold, italic or code: wraps (or unwraps) the selection or the word at the cursor;
+        with neither, inserts the pair and puts the cursor inside."""
+        if not self._writing_markdown():
+            return
+        buffer = self.buffer
+        if buffer.get_has_selection():
+            start, end = buffer.get_selection_bounds()
+            # Emphasis cannot start or end with a space: leave the selection's outer spaces out.
+            while start.compare(end) < 0 and start.get_char().isspace():
+                start.forward_char()
+            while end.compare(start) > 0 and self._char_before(end).isspace():
+                end.backward_char()
+        else:
+            start = buffer.get_iter_at_mark(buffer.get_insert())
+            end = start.copy()
+            if start.inside_word() or start.ends_word():
+                if not start.starts_word():
+                    start.backward_word_start()
+                if not end.ends_word():
+                    end.forward_word_end()
+                # A word that already is bold or italic: take its markers too, so the toggle removes them.
+                outer_start, outer_end = start.copy(), end.copy()
+                outer_start.backward_chars(len(marker))
+                outer_end.forward_chars(len(marker))
+                if (buffer.get_text(outer_start, start, True) == marker
+                        and buffer.get_text(end, outer_end, True) == marker):
+                    start, end = outer_start, outer_end
+        text = buffer.get_text(start, end, True)
+        new = mdedit.toggle_wrap(text, marker)
+        buffer.begin_user_action()
+        offset = start.get_offset()
+        buffer.delete(start, end)
+        buffer.insert(buffer.get_iter_at_offset(offset), new)
+        if text:
+            buffer.select_range(buffer.get_iter_at_offset(offset), buffer.get_iter_at_offset(offset + len(new)))
+        else:
+            buffer.place_cursor(buffer.get_iter_at_offset(offset + len(marker)))
+        buffer.end_user_action()
+        self.view.grab_focus()
+
+    @staticmethod
+    def _char_before(it):
+        previous = it.copy()
+        return previous.get_char() if previous.backward_char() else ""
+
+    def _writing_markdown(self):
+        """The formatting shortcuts act only while the Markdown text itself has the focus
+        (not in Preview mode, not in the find bar)."""
+        return self.kind == "markdown" and self.mode != "preview" and self.view.is_focus()
+
+    def insert_link(self):
+        """[selection]() with the cursor in the parentheses, or []() with it in the brackets."""
+        if not self._writing_markdown():
+            return
+        buffer = self.buffer
+        text = ""
+        buffer.begin_user_action()
+        if buffer.get_has_selection():
+            start, end = buffer.get_selection_bounds()
+            text = mdedit.escape_label(buffer.get_text(start, end, True))
+            buffer.delete(start, end)
+        offset = buffer.get_iter_at_mark(buffer.get_insert()).get_offset()
+        buffer.insert_at_cursor(f"[{text}]()")
+        buffer.place_cursor(buffer.get_iter_at_offset(offset + (len(text) + 3 if text else 1)))
+        buffer.end_user_action()
+        self.view.grab_focus()
+
+    def _on_paste(self, view):
+        """In Markdown: a URL pasted over selected text makes a link; an image is saved next to the file."""
+        if self.kind != "markdown":
+            return
+        clipboard = view.get_clipboard()
+        formats = clipboard.get_formats()
+        # Other apps offer MIME types; content set in this process offers GTypes instead.
+        mimes = formats.get_mime_types() or []
+        gtypes = formats.get_gtypes() or []
+        has_text = formats.contain_gtype(GObject.TYPE_STRING) or any(m.startswith("text/plain") for m in mimes)
+        has_image = any(m.startswith("image/") for m in mimes) or any(t.is_a(Gdk.Texture) for t in gtypes)
+        if self.buffer.get_has_selection() and has_text:
+            view.stop_emission_by_name("paste-clipboard")
+            clipboard.read_text_async(None, self._paste_text)
+        elif has_image and not has_text:
+            view.stop_emission_by_name("paste-clipboard")
+            if self.file is None or self.file.get_parent() is None:
+                self._toast(_("Save the document first to paste images."))
+                return
+            clipboard.read_texture_async(None, self._paste_image)
+
+    def _paste_text(self, clipboard, result):
+        try:
+            text = clipboard.read_text_finish(result)
+        except GLib.Error:
+            return
+        if not text:
+            return
+        buffer = self.buffer
+        buffer.begin_user_action()
+        if buffer.get_has_selection():
+            start, end = buffer.get_selection_bounds()
+            selected = buffer.get_text(start, end, True)
+            buffer.delete(start, end)
+            if mdedit.is_url(text) and not mdedit.is_url(selected) and "\n" not in selected:
+                text = mdedit.link(selected, text)
+        buffer.insert_at_cursor(text)
+        buffer.end_user_action()
+        self.view.scroll_mark_onscreen(buffer.get_insert())
+
+    def _paste_image(self, clipboard, result):
+        try:
+            texture = clipboard.read_texture_finish(result)
+        except GLib.Error as error:
+            self._toast(_("Could not paste the image: {error}").format(error=error.message))
+            return
+        if texture is None or self.file is None or self.file.get_parent() is None:
+            return
+        folder = self.file.get_parent().get_child("images")
+        # A name that needs no escaping in the link: letters, digits and dashes.
+        stem = re.sub(r"[^\w-]+", "-", self.file.get_basename().rsplit(".", 1)[0]).strip("-") or "image"
+        stamp = GLib.DateTime.new_now_local().format("%Y%m%d-%H%M%S")
+        name = f"{stem}-{stamp}.png"
+        number = 1
+        while folder.get_child(name).query_exists(None):
+            number += 1
+            name = f"{stem}-{stamp}-{number}.png"
+        try:
+            folder.make_directory_with_parents(None)
+        except GLib.Error as error:
+            if not error.matches(Gio.io_error_quark(), Gio.IOErrorEnum.EXISTS):
+                self._toast(_("Could not paste the image: {error}").format(error=error.message))
+                return
+        # The link goes in right away, where the paste happened (replacing a selection); the file is
+        # written in the background, through GIO so that remote folders work too.
+        buffer = self.buffer
+        buffer.begin_user_action()
+        if buffer.get_has_selection():
+            buffer.delete_selection(True, True)
+        buffer.insert_at_cursor(f"![](images/{name})")
+        buffer.end_user_action()
+
+        def written(file, res):
+            try:
+                file.replace_contents_finish(res)
+            except GLib.Error as error:
+                self._toast(_("Could not paste the image: {error}").format(error=error.message))
+
+        folder.get_child(name).replace_contents_bytes_async(
+            texture.save_to_png_bytes(), None, False, Gio.FileCreateFlags.NONE, None, written
+        )
 
     # ---------- widok ----------
 

@@ -22,6 +22,7 @@ Status legend: [ ] todo, [~] in progress, [x] done.
 - [x] Overview map (`GtkSource.Map`) next to the editor
 - [x] Preferences: style scheme (all GtkSourceView schemes with live previews), custom font and size, tab width, spaces or tabs, line numbers, current-line highlight, visible whitespace, right margin, bracket auto-pairing, word wrap
 - [ ] Optional `.editorconfig` support
+- [x] Markdown writing: list and quote continuation, Ctrl+B / Ctrl+I / Ctrl+` / Ctrl+K, links from pasted URLs, pasted images saved to `images/` next to the file
 - [x] Outline sidebar for Markdown (F9): headings, current section, jump to a section in the editor or the preview
 
 ## M3. Previews
@@ -37,6 +38,8 @@ Status legend: [ ] todo, [~] in progress, [x] done.
 - [~] Default view mode per file type (preferences; Markdown and data files so far)
 
 ## M4. Release quality
+
+- [x] Startup and memory: the preview's WebView (and web process) is made only when a tab shows it, spell checking loads after the preview; first frame 1.25 s → 0.65 s, five tabs 1 GB → 0.2 GB of WebKit memory
 
 - [ ] Translations: pl (reference), de, fr, es, pt_BR, it, ru, uk, zh_CN, zh_TW, ja, ko, tr, nl, cs, sv, hu, fi, ar, hi, id
 - [ ] RTL layout check (ar)

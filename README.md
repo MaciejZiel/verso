@@ -9,6 +9,7 @@ A text editor for GNOME that shows what your files look like while you write the
 - **Markdown** rendered like on GitHub: tables, task lists, highlighted code, footnotes, definition lists, front matter, KaTeX math and Mermaid diagrams
 - **Edit, Preview, or both Side by Side** (Ctrl+E switches), with synchronized scrolling
 - **Outline** of the headings (F9) to move around long documents
+- **Writing helpers**: lists and quotes continue on Enter, Ctrl+B / Ctrl+I / Ctrl+K for bold, italic and links, a URL pasted over text becomes a link, a pasted image is saved next to the file
 - **JSON, YAML, TOML and XML** as a collapsible, searchable tree that keeps the order of the file
 - **CSV and TSV** as a table you can sort and filter
 - **HTML and SVG** previews; HTML runs without scripts
@@ -29,6 +30,8 @@ A text editor for GNOME that shows what your files look like while you write the
 |---|---|
 | Ctrl+E | Switch between edit and preview |
 | F9 | Show or hide the outline (Esc returns to the text) |
+| Ctrl+B / Ctrl+I / Ctrl+` | Bold / italic / code (Markdown) |
+| Ctrl+K | Insert a link (Markdown) |
 | Ctrl+F / Ctrl+H | Find / find and replace |
 | Ctrl+L | Go to line |
 | Ctrl+P | Print |

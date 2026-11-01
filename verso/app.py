@@ -29,6 +29,10 @@ SHORTCUTS = {
     "win.toggle-view": ["<Control>e"],
     "win.format-json": ["<Control><Shift>i"],
     "win.goto-line": ["<Control>l"],
+    "win.bold": ["<Control>b"],
+    "win.italic": ["<Control>i"],
+    "win.code": ["<Control>grave"],
+    "win.link": ["<Control>k"],
     "win.outline": ["F9"],
     "win.print": ["<Control>p"],
     "win.zoom-in": ["<Control>plus", "<Control>equal", "<Control>KP_Add"],
@@ -240,6 +244,8 @@ class Application(Adw.Application):
                          (_("Next Tab"), "<Control>Page_Down"), (_("Previous Tab"), "<Control>Page_Up"))),
             (_("Editing"), ((_("Find"), "<Control>f"), (_("Find and Replace"), "<Control>h"), (_("Go to Line"), "<Control>l"),
                             (_("Format JSON"), "<Control><Shift>i"), (_("Undo"), "<Control>z"), (_("Redo"), "<Control><Shift>z"))),
+            (_("Markdown"), ((_("Bold"), "<Control>b"), (_("Italic"), "<Control>i"), (_("Code"), "<Control>grave"),
+                             (_("Insert Link"), "<Control>k"))),
         )
         for title, items in groups:
             section = Adw.ShortcutsSection(title=title)

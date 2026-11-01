@@ -454,6 +454,60 @@ def steps(win):
     yield 300
     check("status bar hidden again", not stale.statusbar.get_visible())
     _settings.get().set_boolean("show-statusbar", True)
+    # pisanie Markdownu: listy, formatowanie, link z wklejonego adresu, wklejony obrazek
+    Path(f"{S}/e2e/notatki.md").write_text("")
+    notes = new_win.open_file(Gio.File.new_for_path(f"{S}/e2e/notatki.md"))
+    yield 600
+    notes.set_mode("edit")
+    buf = notes.buffer
+
+    def enter():
+        notes.view.grab_focus()
+        return notes._continue_markdown(Gdk.ModifierType(0))
+
+    buf.set_text("- [x] chleb")
+    buf.place_cursor(buf.get_end_iter())
+    enter()
+    buf.insert_at_cursor("mleko")
+    enter()
+    ended = enter()  # Enter on the empty "- [ ] " item ends the list
+    check("list continues and ends", ended and buf.get_property("text") == "- [x] chleb\n- [ ] mleko\n")
+    buf.set_text("ważne słowo")
+    buf.place_cursor(buf.get_iter_at_offset(2))
+    new_win.lookup_action("bold").activate(None)
+    new_win.lookup_action("bold").activate(None)
+    new_win.lookup_action("italic").activate(None)
+    check("bold toggles, italic wraps the word", buf.get_property("text") == "*ważne* słowo")
+    buf.set_text("**gruby** tekst")
+    buf.place_cursor(buf.get_iter_at_offset(4))
+    new_win.lookup_action("bold").activate(None)
+    check("bold off inside a bold word without selection", buf.get_property("text") == "gruby tekst")
+    buf.set_text("- punkt")
+    buf.place_cursor(buf.get_start_iter())
+    check("enter before the marker is a plain newline", not enter())
+    buf.set_text("```\n- kod")
+    buf.place_cursor(buf.get_end_iter())
+    check("no list continuation in code blocks", not enter())
+    notes.set_mode("preview")
+    buf.set_text("x")
+    new_win.lookup_action("bold").activate(None)
+    check("formatting does nothing in preview mode", buf.get_property("text") == "x")
+    notes.set_mode("edit")
+    buf.set_text("GNOME")
+    buf.select_range(buf.get_start_iter(), buf.get_end_iter())
+    notes.view.get_clipboard().set("https://gnome.org")
+    notes.view.emit("paste-clipboard")
+    yield 300
+    check("pasting a url over text makes a link", buf.get_property("text") == "[GNOME](https://gnome.org)")
+    buf.set_text("")
+    pixels = GLib.Bytes.new(bytes([255, 0, 0, 255] * 4))
+    texture = Gdk.MemoryTexture.new(2, 2, Gdk.MemoryFormat.R8G8B8A8, pixels, 8)
+    notes.view.get_clipboard().set_content(Gdk.ContentProvider.new_for_value(texture))
+    notes.view.emit("paste-clipboard")
+    yield 400
+    pasted = buf.get_property("text")
+    image = Path(f"{S}/e2e") / pasted[len("![]("):-1] if pasted.startswith("![](images/notatki-") else None
+    check("pasted image saved next to the file", image is not None and image.read_bytes()[:4] == b"\x89PNG")
     for doc in new_win.documents:
         doc.buffer.set_modified(False)
     app.release()

@@ -20,6 +20,7 @@ install_data(
   'document.py',
   'fonts.py',
   'md.py',
+  'mdedit.py',
   'outline.py',
   'preferences.py',
   'render.py',
