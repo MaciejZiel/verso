@@ -8,12 +8,35 @@ still wins over them.
 import os
 import re
 
-from .render import parse_ini
+MAX_WIDTH = 16  # the status bar and the tab-width preference go up to 16
+
+
+def parse(text):
+    """[(section, {key: value})] in file order; keys before any section go under None.
+
+    Lines that are neither a section, a key = value pair nor a comment are skipped, as the spec says.
+    """
+    sections, current = [(None, {})], None
+    for line in text.splitlines():
+        line = line.strip()
+        if not line or line[0] in "#;":
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            current = {}
+            sections.append((line[1:-1], current))
+        elif "=" in line:
+            key, value = (part.strip() for part in line.split("=", 1))
+            if key:
+                (current if current is not None else sections[0][1])[key.lower()] = value
+    return sections
 
 
 def _glob_regex(pattern):
-    """EditorConfig globs: * (not /), ** (anything), ?, [seq], [!seq], {a,b} and {1..10}."""
-    out, i, depth = [], 0, 0
+    """(regex, ranges) for an EditorConfig glob: * (not /), ** (anything), ?, [seq], [!seq], {a,b}, {1..10}.
+
+    Each {low..high} becomes a capture group; ranges lists their bounds in group order.
+    """
+    out, ranges, i, depth = [], [], 0, 0
     while i < len(pattern):
         char = pattern[i]
         if char == "\\" and i + 1 < len(pattern):
@@ -36,14 +59,15 @@ def _glob_regex(pattern):
                 body = pattern[i + 1 : end]
                 negate = body.startswith("!")
                 body = body[1:] if negate else body
+                body = "\\^" + body[1:] if body.startswith("^") else body  # only ! negates here
                 out.append(("[^" if negate else "[") + body.replace("\\", "\\\\") + "]")
                 i = end
         elif char == "{":
             end = pattern.find("}", i + 1)
             numbers = re.fullmatch(r"([+-]?\d+)\.\.([+-]?\d+)", pattern[i + 1 : end]) if end > 0 else None
             if numbers:
-                low, high = sorted((int(numbers[1]), int(numbers[2])))
-                out.append("(?:" + "|".join(str(n) for n in range(low, high + 1)) + ")")
+                ranges.append(sorted((int(numbers[1]), int(numbers[2]))))
+                out.append(r"([+-]?\d+)")  # checked against the range after matching
                 i = end
             elif end > 0 and "," in pattern[i + 1 : end]:
                 out.append("(?:")
@@ -58,7 +82,21 @@ def _glob_regex(pattern):
         else:
             out.append(re.escape(char))
         i += 1
-    return "".join(out)
+    return "".join(out), ranges
+
+
+def glob_match(glob, target):
+    try:
+        regex, ranges = _glob_regex(glob)
+        found = re.fullmatch(regex, target)
+    except re.error:
+        return False
+    if found is None:
+        return False
+    for number, (low, high) in zip(found.groups(), ranges):
+        if number is not None and not low <= int(number) <= high:
+            return False
+    return True
 
 
 def matches(section, path, folder):
@@ -68,10 +106,7 @@ def matches(section, path, folder):
         target = os.path.relpath(path, folder)
     else:
         glob, target = section, os.path.basename(path)  # a plain name matches in any folder
-    try:
-        return re.fullmatch(_glob_regex(glob), target) is not None
-    except re.error:
-        return False
+    return glob_match(glob, target)
 
 
 def properties(path):
@@ -81,25 +116,23 @@ def properties(path):
     while True:
         candidate = os.path.join(folder, ".editorconfig")
         try:
-            with open(candidate, encoding="utf-8") as handle:
-                data, error = parse_ini(handle.read(), ".editorconfig")
+            with open(candidate, encoding="utf-8-sig") as handle:  # -sig: a BOM must not hide "root"
+                sections = parse(handle.read())
         except (OSError, UnicodeDecodeError):
-            data, error = None, None
-        if data and not error:
-            files.append((folder, data))
-            if str(data.get("root", "")).lower() == "true":
+            sections = None
+        if sections:
+            files.append((folder, sections))
+            if sections[0][1].get("root", "").lower() == "true":
                 break
         parent = os.path.dirname(folder)
         if parent == folder:
             break
         folder = parent
     result = {}
-    for folder, data in reversed(files):  # the farthest first, so closer files win
-        for section, values in data.items():
-            if isinstance(values, dict) and matches(section, os.path.abspath(path), folder):
-                for key, value in values.items():
-                    value = value[-1] if isinstance(value, list) else value
-                    result[key.lower()] = value.lower()
+    for folder, sections in reversed(files):  # the farthest first, so closer files win
+        for section, values in sections:
+            if section is not None and matches(section, os.path.abspath(path), folder):
+                result.update((key, value.lower()) for key, value in values.items())
     return result
 
 
@@ -107,12 +140,12 @@ def indentation(props):
     """(insert_spaces, width) from EditorConfig properties; either may be None when not set."""
     style = props.get("indent_style")
     spaces = {"space": True, "tab": False}.get(style)
-    size = props.get("indent_size")
-    width = None
-    if size == "tab":
-        size = props.get("tab_width")
-    if size and size.isdigit() and 0 < int(size) <= 32:
-        width = int(size)
-    elif props.get("tab_width", "").isdigit() and 0 < int(props["tab_width"]) <= 32:
-        width = int(props["tab_width"])
+    def number(key):
+        value = props.get(key, "")
+        return int(value) if value.isdigit() and 0 < int(value) <= MAX_WIDTH else None
+
+    tab_width = number("tab_width")
+    size = tab_width if props.get("indent_size") == "tab" else number("indent_size")
+    # Verso shows one width: for tabs the width a tab is drawn with, for spaces the indent size.
+    width = (tab_width or size) if spaces is False else (size or tab_width)
     return spaces, width

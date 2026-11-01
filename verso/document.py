@@ -397,7 +397,6 @@ class Document(Gtk.Box):
             fallback = {"markdown": "markdown", "json": "json", "jsonl": "json", "ini": "ini"}.get(self.kind)
             language = manager.get_language(fallback) if fallback else None
         self.buffer.set_language(language)
-        self._update_spelling()
         path = self.file.get_path() if self.file else None
         self._editorconfig = editorconfig.indentation(editorconfig.properties(path)) if path else (None, None)
         self._apply_editor_settings()
