@@ -94,7 +94,7 @@ class Window(Adw.ApplicationWindow):
         section.append(_("Find…"), "win.find")
         section.append(_("Find and Replace…"), "win.replace")
         section.append(_("Go to Line…"), "win.goto-line")
-        section.append(_("Format JSON"), "win.format-json")
+        section.append(_("Format"), "win.format-json")
         menu.append_section(None, section)
         section = Gio.Menu()
         section.append(_("Check Spelling"), "win.spellcheck")
@@ -137,7 +137,7 @@ class Window(Adw.ApplicationWindow):
         add("find", lambda: self.current and self.current.show_search(False))
         add("replace", lambda: self.current and self.current.show_search(True))
         add("toggle-view", lambda: self.current and self.current.cycle_mode())
-        add("format-json", lambda: self.current and self.current.format_json())
+        add("format-json", lambda: self.current and self.current.format_document())
         add("goto-line", lambda: self.current and self.current.show_goto())
         add("print", lambda: self.current and self.current.print_document())
         add("export-pdf", self.export_pdf)
@@ -445,7 +445,7 @@ class Window(Adw.ApplicationWindow):
         self._syncing_mode = False
         # Formatting goes through strict JSON and would drop the comments of JSONC files.
         jsonc = doc.file is not None and render.json_allows_comments(doc.file.get_basename())
-        self.lookup_action("format-json").set_enabled(doc.kind == "json" and not jsonc)
+        self.lookup_action("format-json").set_enabled((doc.kind == "json" and not jsonc) or doc.kind == "markdown")
 
     def _on_mode_toggled(self, group, _pspec):
         if getattr(self, "_syncing_mode", False):

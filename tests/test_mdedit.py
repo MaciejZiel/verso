@@ -60,3 +60,27 @@ def test_literal_blocks():
 def test_escape_label():
     assert escape_label("see [1] here") == "see \\[1\\] here"
     assert link("a [b]", "https://x.org") == "[a \\[b\\]](https://x.org)"
+
+
+def test_format_table():
+    from verso.mdedit import find_tables, format_table, split_row
+
+    table = ["| Item | Per person|Notes |", "|---|---:|:-:|", "|Flights|180 €| return |", "|Żółć|5|中文|", "| a \\| b |"]
+    assert format_table(table) == [
+        "| Item    | Per person | Notes  |",
+        "| ------- | ---------: | :----: |",
+        "| Flights |      180 € | return |",
+        "| Żółć    |          5 |  中文  |",
+        "| a \\| b  |            |        |",
+    ]
+    assert format_table(format_table(table)) == format_table(table)  # stable
+    assert format_table(["  a|b", "  -|-"]) == ["  | a   | b   |", "  | --- | --- |"]  # keeps the indent
+    assert split_row("|a|b\\|c|") == ["a", "b\\|c"]
+
+
+def test_find_tables():
+    from verso.mdedit import find_tables
+
+    lines = ["text", "|a|b|", "|-|-|", "|1|2|", "", "```", "|a|b|", "|-|-|", "```", "x | y", "--|--"]
+    assert find_tables(lines) == [(1, 4), (9, 11)]
+    assert find_tables(["a | b", "not a delimiter"]) == []

@@ -245,7 +245,7 @@ class Application(Adw.Application):
             (_("Editing"), ((_("Find"), "<Control>f"), (_("Find and Replace"), "<Control>h"), (_("Go to Line"), "<Control>l"),
                             (_("Format JSON"), "<Control><Shift>i"), (_("Undo"), "<Control>z"), (_("Redo"), "<Control><Shift>z"))),
             (_("Markdown"), ((_("Bold"), "<Control>b"), (_("Italic"), "<Control>i"), (_("Code"), "<Control>grave"),
-                             (_("Insert Link"), "<Control>k"))),
+                             (_("Insert Link"), "<Control>k"), (_("Format Table"), "<Control><Shift>i"))),
         )
         for title, items in groups:
             section = Adw.ShortcutsSection(title=title)

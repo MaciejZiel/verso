@@ -829,6 +829,46 @@ class Document(Gtk.Box):
         if self._preview_ready:
             self._run_js(f"window.verso.setDark({json.dumps(dark)})")
 
+    def format_document(self):
+        """Ctrl+Shift+I: formats JSON, or in Markdown the table at the cursor (all tables when the
+        cursor is in none)."""
+        if self.kind == "markdown":
+            self.format_tables()
+        else:
+            self.format_json()
+
+    def format_tables(self):
+        buffer = self.buffer
+        lines = buffer.get_text(buffer.get_start_iter(), buffer.get_end_iter(), True).split("\n")
+        tables = mdedit.find_tables(lines)
+        if not tables:
+            self._toast(_("There is no table to format."))
+            return
+        cursor = buffer.get_iter_at_mark(buffer.get_insert())
+        line, column = cursor.get_line(), cursor.get_line_offset()
+        current = [(start, end) for start, end in tables if start <= line < end]
+        changed = False
+        buffer.begin_user_action()
+        for start, end in reversed(current or tables):  # from the bottom, so earlier line numbers hold
+            formatted = mdedit.format_table(lines[start:end])
+            if formatted == lines[start:end]:
+                continue
+            changed = True
+            _found, first = buffer.get_iter_at_line(start)
+            _found, last = buffer.get_iter_at_line(end - 1)
+            if not last.ends_line():
+                last.forward_to_line_end()
+            buffer.delete(first, last)
+            buffer.insert(first, "\n".join(formatted))
+        buffer.end_user_action()
+        if changed:
+            _found, it = buffer.get_iter_at_line(line)
+            end = it.copy()
+            if not end.ends_line():
+                end.forward_to_line_end()
+            it.set_line_offset(min(column, end.get_line_offset()))
+            buffer.place_cursor(it)
+
     def format_json(self):
         if self.kind != "json":
             self._toast(_("Formatting is available only for JSON files."))

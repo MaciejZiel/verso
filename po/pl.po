@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: verso\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-01 10:52+0100\n"
+"POT-Creation-Date: 2026-11-01 10:55+0100\n"
 "PO-Revision-Date: 2026-10-31 22:09+0100\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -341,7 +341,7 @@ msgstr "Znajdź i zamień"
 msgid "Go to Line"
 msgstr "Przejdź do wiersza"
 
-#: verso/app.py:246 verso/window.py:97
+#: verso/app.py:246
 msgid "Format JSON"
 msgstr "Sformatuj JSON"
 
@@ -372,6 +372,10 @@ msgstr "Kod"
 #: verso/app.py:248
 msgid "Insert Link"
 msgstr "Wstaw odnośnik"
+
+#: verso/app.py:248
+msgid "Format Table"
+msgstr "Formatuj tabelę"
 
 #: verso/document.py:143
 msgid "The file has changed on disk."
@@ -475,29 +479,33 @@ msgstr "Aby wkleić obraz, najpierw zapisz dokument."
 msgid "Could not paste the image: {error}"
 msgstr "Nie udało się wkleić obrazu: {error}"
 
-#: verso/document.py:834
+#: verso/document.py:845
+msgid "There is no table to format."
+msgstr "Nie ma tabeli do sformatowania."
+
+#: verso/document.py:874
 msgid "Formatting is available only for JSON files."
 msgstr "Formatowanie działa tylko dla plików JSON."
 
-#: verso/document.py:840
+#: verso/document.py:880
 #, python-brace-format
 msgid "Invalid JSON. {error}"
 msgstr "Niepoprawny JSON. {error}"
 
-#: verso/document.py:1066
+#: verso/document.py:1106
 msgid "Page %N of %Q"
 msgstr "Strona %N z %Q"
 
-#: verso/document.py:1319
+#: verso/document.py:1359
 #, python-brace-format
 msgid "{position} of {total}"
 msgstr "{position} z {total}"
 
-#: verso/document.py:1319
+#: verso/document.py:1359
 msgid "No matches"
 msgstr "Brak wyników"
 
-#: verso/document.py:1332
+#: verso/document.py:1372
 #, python-brace-format
 msgid "Replaced {count} match"
 msgid_plural "Replaced {count} matches"
@@ -505,7 +513,7 @@ msgstr[0] "Zamieniono {count} wystąpienie"
 msgstr[1] "Zamieniono {count} wystąpienia"
 msgstr[2] "Zamieniono {count} wystąpień"
 
-#: verso/document.py:1368
+#: verso/document.py:1408
 #, python-brace-format
 msgid "Could not keep a backup of unsaved changes: {error}"
 msgstr "Nie udało się zachować kopii niezapisanych zmian: {error}"
@@ -639,6 +647,10 @@ msgstr "Znajdź i zamień…"
 #: verso/window.py:96
 msgid "Go to Line…"
 msgstr "Przejdź do wiersza…"
+
+#: verso/window.py:97
+msgid "Format"
+msgstr "Formatuj"
 
 #: verso/window.py:100 verso/preferences.py:115
 msgid "Check Spelling"

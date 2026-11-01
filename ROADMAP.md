@@ -22,7 +22,7 @@ Status legend: [ ] todo, [~] in progress, [x] done.
 - [x] Overview map (`GtkSource.Map`) next to the editor
 - [x] Preferences: style scheme (all GtkSourceView schemes with live previews), custom font and size, tab width, spaces or tabs, line numbers, current-line highlight, visible whitespace, right margin, bracket auto-pairing, word wrap
 - [ ] Optional `.editorconfig` support
-- [x] Markdown writing: list and quote continuation, Ctrl+B / Ctrl+I / Ctrl+` / Ctrl+K, links from pasted URLs, pasted images saved to `images/` next to the file
+- [x] Markdown writing: list and quote continuation, Ctrl+B / Ctrl+I / Ctrl+` / Ctrl+K, links from pasted URLs, pasted images saved to `images/` next to the file, table alignment (Ctrl+Shift+I)
 - [x] Outline sidebar for Markdown (F9): headings, current section, jump to a section in the editor or the preview
 
 ## M3. Previews

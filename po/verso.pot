@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: verso\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-01 10:52+0100\n"
+"POT-Creation-Date: 2026-11-01 10:55+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -326,7 +326,7 @@ msgstr ""
 msgid "Go to Line"
 msgstr ""
 
-#: verso/app.py:246 verso/window.py:97
+#: verso/app.py:246
 msgid "Format JSON"
 msgstr ""
 
@@ -356,6 +356,10 @@ msgstr ""
 
 #: verso/app.py:248
 msgid "Insert Link"
+msgstr ""
+
+#: verso/app.py:248
+msgid "Format Table"
 msgstr ""
 
 #: verso/document.py:143
@@ -456,36 +460,40 @@ msgstr ""
 msgid "Could not paste the image: {error}"
 msgstr ""
 
-#: verso/document.py:834
+#: verso/document.py:845
+msgid "There is no table to format."
+msgstr ""
+
+#: verso/document.py:874
 msgid "Formatting is available only for JSON files."
 msgstr ""
 
-#: verso/document.py:840
+#: verso/document.py:880
 #, python-brace-format
 msgid "Invalid JSON. {error}"
 msgstr ""
 
-#: verso/document.py:1066
+#: verso/document.py:1106
 msgid "Page %N of %Q"
 msgstr ""
 
-#: verso/document.py:1319
+#: verso/document.py:1359
 #, python-brace-format
 msgid "{position} of {total}"
 msgstr ""
 
-#: verso/document.py:1319
+#: verso/document.py:1359
 msgid "No matches"
 msgstr ""
 
-#: verso/document.py:1332
+#: verso/document.py:1372
 #, python-brace-format
 msgid "Replaced {count} match"
 msgid_plural "Replaced {count} matches"
 msgstr[0] ""
 msgstr[1] ""
 
-#: verso/document.py:1368
+#: verso/document.py:1408
 #, python-brace-format
 msgid "Could not keep a backup of unsaved changes: {error}"
 msgstr ""
@@ -616,6 +624,10 @@ msgstr ""
 
 #: verso/window.py:96
 msgid "Go to Line…"
+msgstr ""
+
+#: verso/window.py:97
+msgid "Format"
 msgstr ""
 
 #: verso/window.py:100 verso/preferences.py:115
