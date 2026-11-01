@@ -67,7 +67,7 @@ def test_toc_names_are_plain_text():
 def test_shorten_home():
     from verso.render import shorten_home
 
-    assert shorten_home("/home/ja/Rinvo", "/home/ja") == "~/Rinvo"
+    assert shorten_home("/home/ja/Projects", "/home/ja") == "~/Projects"
     assert shorten_home("/home/ja", "/home/ja") == "~"
     assert shorten_home("/home/ja2/x", "/home/ja") == "/home/ja2/x"
 
