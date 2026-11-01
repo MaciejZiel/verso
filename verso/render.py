@@ -3,6 +3,7 @@
 import html as html_lib
 from gettext import gettext as _
 import json
+import re
 import secrets
 from functools import cache
 from pathlib import Path
@@ -13,10 +14,12 @@ from . import md
 
 DATA_DIR = Path(__file__).parent / "data"
 
-# File kind by extension. .jsonc is left out: json.loads does not accept comments.
+# File kind by extension (dot files such as .env are recognised by name in kind_of).
 KINDS = {
     "markdown": {".md", ".markdown", ".mdown", ".mkd"},
-    "json": {".json", ".geojson", ".webmanifest"},
+    "json": {".json", ".jsonc", ".geojson", ".webmanifest"},
+    "jsonl": {".jsonl", ".ndjson"},
+    "ini": {".ini", ".cfg", ".env", ".desktop", ".service", ".timer", ".socket"},
     "yaml": {".yaml", ".yml"},
     "toml": {".toml"},
     "xml": {".xml", ".xsd", ".xsl", ".xslt", ".rss", ".atom", ".plist", ".csproj", ".ui"},
@@ -24,7 +27,7 @@ KINDS = {
     "html": {".html", ".htm", ".xhtml"},
     "svg": {".svg"},
 }
-TREE_KINDS = {"json", "yaml", "toml", "xml"}  # shown with the collapsible tree
+TREE_KINDS = {"json", "jsonl", "yaml", "toml", "xml", "ini"}  # shown with the collapsible tree
 DATA_KINDS = TREE_KINDS | {"csv"}  # no spell checking or word count
 TABLE_ROW_LIMIT = 5000
 
@@ -40,8 +43,25 @@ def shorten_home(path, home=None):
 
 def kind_of(name):
     """Preview kind for a file name ('markdown', 'json', 'csv', …) or None when there is no preview."""
-    suffix = Path(name or "").suffix.lower()
+    base = Path(name or "").name.lower()
+    if is_env_file(base) or base == ".editorconfig":  # dot files have no suffix
+        return "ini"
+    suffix = Path(base).suffix
     return next((kind for kind, suffixes in KINDS.items() if suffix in suffixes), None)
+
+
+def is_env_file(name):
+    """.env, .env.local, production.env: KEY=value lines rather than INI sections."""
+    base = Path(name or "").name.lower()
+    return base == ".env" or base.startswith(".env.") or base.endswith(".env")
+
+
+def json_allows_comments(name):
+    """JSON dialects that allow comments and trailing commas (JSONC). Plain .json files stay strict:
+    npm, browsers and most tools reject comments there."""
+    base = Path(name or "").name.lower()
+    return (base.endswith(".jsonc") or base in ("devcontainer.json", ".devcontainer.json")
+            or (base.endswith(".json") and base.startswith(("tsconfig", "jsconfig"))))
 
 
 def render_markdown(text):
@@ -49,12 +69,141 @@ def render_markdown(text):
     return md.render(text)
 
 
-def parse_json(text):
-    """Zwraca (dane, None) albo (None, opis błędu z numerem linii)."""
+def _json_error(error, line=None):
+    return _("Line {line}, column {column}: {message}").format(line=line or error.lineno, column=error.colno, message=error.msg)
+
+
+def parse_json(text, allow_comments=False):
+    """Zwraca (dane, None) albo (None, opis błędu z numerem linii). With allow_comments, also JSON with
+    comments and trailing commas (tsconfig.json, VS Code settings, .jsonc)."""
     try:
         return json.loads(text), None
     except json.JSONDecodeError as error:
-        return None, _("Line {line}, column {column}: {message}").format(line=error.lineno, column=error.colno, message=error.msg)
+        if allow_comments:
+            try:
+                return json.loads(strip_jsonc(text)), None
+            except json.JSONDecodeError as relaxed:
+                if relaxed.lineno != error.lineno or relaxed.colno != error.colno:
+                    return None, _json_error(relaxed)  # the comments were fine; this is the real problem
+        return None, _json_error(error)
+
+
+def strip_jsonc(text):
+    """Blanks out // and /* */ comments and trailing commas, outside strings. Everything else keeps
+    its place, so error positions still point at the original text."""
+    out = list(text)
+    i, n = 0, len(text)
+    in_string = False
+    last_comma = None  # index of a comma not yet followed by anything but space and comments
+    previous = ""  # the last character outside comments and space, before the current one
+    while i < n:
+        char = text[i]
+        if in_string:
+            if char == "\\":
+                i += 2
+                continue
+            if char == '"':
+                in_string = False
+        elif char == '"':
+            in_string, last_comma = True, None
+        elif char == "/" and text.startswith("//", i):
+            end = text.find("\n", i)
+            end = n if end < 0 else end
+            out[i:end] = " " * (end - i)
+            i = end
+            continue
+        elif char == "/" and text.startswith("/*", i):
+            end = text.find("*/", i + 2)
+            end = n if end < 0 else end + 2
+            out[i:end] = [c if c == "\n" else " " for c in text[i:end]]
+            i = end
+            continue
+        elif char == ",":
+            # A comma right after [ { or another comma has no value before it: an error to keep.
+            last_comma = i if previous not in ("[", "{", ",", "") else None
+        elif char in "}]":
+            if last_comma is not None:
+                out[last_comma] = " "
+            last_comma = None
+        elif not char.isspace():
+            last_comma = None
+        if not in_string and not char.isspace() or char == '"':
+            previous = char
+        i += 1
+    return "".join(out)
+
+
+JSONL_LIMIT = 5000
+
+
+def jsonl_payload(text):
+    """JSON Lines: one JSON value per line, shown as a list; very long files show their start."""
+    # Only \n separates records: JSON strings may hold U+2028 and other characters splitlines() breaks on.
+    lines = [(number, line.rstrip("\r")) for number, line in enumerate(text.split("\n"), 1) if line.strip()]
+    records = []
+    for number, line in lines[:JSONL_LIMIT]:
+        try:
+            records.append(json.loads(line))
+        except json.JSONDecodeError as error:
+            message = _json_error(error, line=number)
+            return {"kind": "tree", "format": "jsonl", "error": _("Invalid {format}. {error}").format(format="JSON Lines", error=message)}
+    payload = {"kind": "tree", "format": "jsonl", "tree": to_tree(records)}
+    if len(lines) > JSONL_LIMIT:
+        payload["note"] = _("Showing the first {shown} of {total} rows").format(shown=JSONL_LIMIT, total=len(lines))
+    return payload
+
+
+_INI_PAIR = re.compile(r"^([^=:]+?)\s*[=:]\s*(.*)$")
+
+
+def _add(mapping, key, value):
+    # Repeated keys are normal in systemd units (Environment=, After=…): keep every value.
+    if key not in mapping:
+        mapping[key] = value
+    elif isinstance(mapping[key], list):
+        mapping[key].append(value)
+    else:
+        mapping[key] = [mapping[key], value]
+
+
+def parse_ini(text, name=""):
+    """INI files: [section] headers, key = value or key: value, # and ; comments, keys before the
+    first section, repeated keys as lists. .env files go to parse_env."""
+    if is_env_file(name):
+        return parse_env(text), None
+    data, section = {}, None
+    for number, raw in enumerate(text.split("\n"), 1):
+        line = raw.strip()
+        if not line or line[0] in "#;":
+            continue
+        if line.startswith("[") and line.endswith("]"):
+            title = line[1:-1].strip()
+            section = data[title] if isinstance(data.get(title), dict) else data.setdefault(title, {})
+            continue
+        pair = _INI_PAIR.match(line)
+        if pair is None:
+            return None, _("Line {line}: {text}").format(line=number, text=line)
+        _add(data if section is None else section, pair[1].strip(), pair[2].strip())
+    return data, None
+
+
+def parse_env(text):
+    """KEY=value lines, optionally with "export", quotes and # comments after the value."""
+    values = {}
+    for line in text.split("\n"):
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _sep, value = line.partition("=")
+        key = key.removeprefix("export ").strip()
+        value = value.strip()
+        if value[:1] in ("'", '"'):
+            closing = value.find(value[0], 1)
+            value = value[1:closing] if closing > 0 else value[1:]
+        elif " #" in value:
+            value = value.split(" #", 1)[0].rstrip()
+        values[key] = value
+    return values
 
 
 def format_json(text, indent=2):
@@ -207,18 +356,32 @@ def table_payload(text, name=""):
     }
 
 
+def _parse_json_preview(text, name):
+    if json_allows_comments(name):
+        return parse_json(text, allow_comments=True)
+    data, error = parse_json(text)
+    if error and len(text) < 200_000 and parse_json(text, allow_comments=True)[1] is None:
+        # Valid JSONC: say why it is still an error here.
+        error += " " + _("Comments and trailing commas are allowed only in .jsonc files.")
+    return data, error
+
+
 def preview_payload(kind, text, name=""):
     """Data for the preview page (preview.js)."""
     if kind == "markdown":
         html, toc, features = render_markdown(text)
         return {"kind": "markdown", "html": html, "toc": toc, "features": features}
     if kind in TREE_KINDS:
+        if kind == "jsonl":
+            return jsonl_payload(text)
         if kind == "xml":
             tree, error = xml_tree(text)
         else:
-            data, error = {"json": parse_json, "yaml": parse_yaml, "toml": parse_toml}[kind](text)
+            parsers = {"json": lambda t: _parse_json_preview(t, name), "yaml": parse_yaml, "toml": parse_toml,
+                       "ini": lambda t: parse_ini(t, name)}
+            data, error = parsers[kind](text)
             tree = None if error else to_tree(data)
-        label = {"json": "JSON", "yaml": "YAML", "toml": "TOML", "xml": "XML"}[kind]
+        label = {"json": "JSON", "yaml": "YAML", "toml": "TOML", "xml": "XML", "ini": "INI"}[kind]
         if error:
             return {"kind": "tree", "format": kind, "error": _("Invalid {format}. {error}").format(format=label, error=error)}
         return {"kind": "tree", "format": kind, "tree": tree}

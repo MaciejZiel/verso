@@ -33,6 +33,7 @@ Status legend: [ ] todo, [~] in progress, [x] done.
 - [x] Preview themes: GitHub, Document (serif, print-like), Reader (large, centered); content width and preview font
 - [x] CSV / TSV: table with sticky header, column sorting, search, delimiter detection
 - [x] YAML / TOML / XML: the same tree view as JSON
+- [x] JSON with comments and trailing commas, JSON Lines, INI / .env / .editorconfig / systemd units in the tree view
 - [x] HTML: rendered page with scripts off by default; SVG: rendered image
 - [x] Print and export to PDF from the preview (`WebKit.PrintOperation`)
 - [~] Default view mode per file type (preferences; Markdown and data files so far)

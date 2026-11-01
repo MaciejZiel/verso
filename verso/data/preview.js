@@ -327,6 +327,7 @@
     const collapse = el("button", "", T.collapseAll);
     const raw = el("button", jsonState.raw ? "on" : "", T.raw);
     bar.append(search, count, expand, collapse);
+    if (payload.note) bar.append(el("span", "table-note", payload.note));
     // "Raw" pretty-prints JSON; for YAML/TOML/XML the editor already shows the source.
     if (payload.format === "json") bar.append(raw);
     else jsonState.raw = false;

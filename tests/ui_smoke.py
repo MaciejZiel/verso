@@ -194,6 +194,9 @@ def steps(win):
         "liczby.csv": "nazwa;kwota\na;1,500\nb;20\nc;300\n",
         "mieszane.csv": "miasto,rok\nMadryt,865\nPorto,300 BC\n",
         "ikona.svg": "<svg xmlns='http://www.w3.org/2000/svg' width='10' height='10'><rect width='10' height='10'/></svg>",
+        "tsconfig.json": '{\n  // komentarz\n  "strict": true,\n}\n',
+        "zdarzenia.jsonl": '{"id": 1}\n{"id": 2}\n',
+        ".env": "export TOKEN='abc'\nDEBUG=1\n",
     }
     opened = {}
     Path(f"{S}/e2e/inna.html").write_text("<p>RAMKA</p>")
@@ -201,7 +204,7 @@ def steps(win):
         Path(f"{S}/e2e/{name}").write_text(content)
         opened[name] = win.open_file(Gio.File.new_for_path(f"{S}/e2e/{name}"))
     yield 600
-    check("background tabs start no web process", opened["dane.csv"].webview is None and opened["ikona.svg"].webview is not None)
+    check("background tabs start no web process", opened["dane.csv"].webview is None and opened[".env"].webview is not None)
     for doc in opened.values():
         win.tab_view.set_selected_page(win.tab_view.get_page(doc))
         yield 150
@@ -224,7 +227,13 @@ def steps(win):
              "[...document.querySelectorAll('.data-table th, .data-table td')].map(c => c.classList.contains('num') ? 'n' : '-').join('')", out, "mixed")
     js_value(opened["liczby.csv"].webview,
              "[...document.querySelectorAll('.data-table th, .data-table td')].map(c => c.classList.contains('num') ? 'n' : '-').join('')", out, "numcol")
+    js_value(opened["tsconfig.json"].webview, "[...document.querySelectorAll('.jkey')].map(e => e.textContent).join(',') + (document.querySelector('.error') ? ' ERR' : '')", out, "jsonc")
+    js_value(opened["zdarzenia.jsonl"].webview, "[...document.querySelectorAll('.jkey')].filter(e => e.textContent === '\"id\"').length + ':' + !document.querySelector('.error')", out, "jsonl")
+    js_value(opened[".env"].webview, "[...document.querySelectorAll('.jkey')].map(e => e.textContent).join(',')", out, "env")
     yield 800
+    check("json with comments shows a tree", out.get("jsonc") == '"strict"')
+    check("json lines show every record", out.get("jsonl") == "2:true")
+    check(".env shows its keys", out.get("env") == '"TOKEN","DEBUG"')
     check("mixed column is not numeric", out.get("mixed") == "------")
     check("numeric column aligned as a whole", out.get("numcol") == "-n-n-n-n")
     check("html iframe blocked", out.get("iframe") == "")

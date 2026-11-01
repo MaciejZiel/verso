@@ -64,10 +64,6 @@ def test_toc_names_are_plain_text():
     assert [name for _, _, name, _ in toc] == ["A & B", "x < y"]
 
 
-def test_jsonc_has_no_json_preview():
-    assert kind_of("settings.jsonc") is None
-
-
 def test_shorten_home():
     from verso.render import shorten_home
 
@@ -228,3 +224,60 @@ def test_footnote_headings_and_ids_stay_out_of_the_way():
     assert [(title, line) for _, _, title, line in outline(text)] == [("fn1", 4), ("B", 6)]
     html, _toc, _features = render_markdown(text)
     assert html.count('id="fn1"') == 1  # the heading got another anchor
+
+
+def test_new_kinds():
+    from verso.render import kind_of
+
+    assert kind_of(".env") == kind_of(".env.local") == kind_of("prod.env") == "ini"
+    assert kind_of(".editorconfig") == kind_of("verso.service") == kind_of("app.desktop") == "ini"
+    assert kind_of("events.jsonl") == kind_of("x.ndjson") == "jsonl"
+    assert kind_of("settings.jsonc") == "json"
+    assert kind_of(".environment.ini") == "ini"
+    assert kind_of(".bashrc") is None
+
+
+def test_json_with_comments():
+    from verso.render import format_json, parse_json, strip_jsonc
+
+    text = '{\n  // comment\n  "url": "http://x/*y*/", /* block */\n  "list": [1, 2,],\n}\n'
+    assert preview_payload("json", text, "tsconfig.json")["tree"]
+    assert "jsonc" in preview_payload("json", text, "package.json")["error"]  # plain JSON stays strict
+    assert preview_payload("json", "[,]", "a.jsonc")["error"]  # a comma without a value is no trailing comma
+    assert parse_json(text, allow_comments=True) == ({"url": "http://x/*y*/", "list": [1, 2]}, None)
+    assert parse_json(text)[1]  # strict JSON still rejects it
+    assert format_json(text) is None  # formatting must not silently drop the comments
+    assert strip_jsonc('"a,]"') == '"a,]"'
+    assert len(strip_jsonc(text)) == len(text) and strip_jsonc(text).count("\n") == text.count("\n")
+    _data, error = parse_json('{\n  // ok\n  "a": 1\n  "b": 2\n}', allow_comments=True)
+    assert error.startswith("Line 4,")  # the real mistake, not the comment
+
+
+def test_json_lines():
+    from verso import render
+
+    payload = preview_payload("jsonl", '{"a": 1}\n\n[2]\n')
+    assert payload["tree"] == {"a": [{"o": [["a", {"v": 1}]]}, {"a": [{"v": 2}]}]}
+    assert "Line 2," in preview_payload("jsonl", '1\n{x}\n')["error"]
+    assert preview_payload("jsonl", '{"a": "x\u2028y"}\r\n')["tree"]  # only \n separates records
+    long = "\n".join("{}" for _ in range(render.JSONL_LIMIT + 3))
+    payload = preview_payload("jsonl", long)
+    assert len(payload["tree"]["a"]) == render.JSONL_LIMIT and payload["note"]
+
+
+def test_ini_and_env():
+    from verso.render import parse_ini
+
+    assert parse_ini("[Unit]\nDescription=X\n[Service]\nExecStart=/bin/x a=b\n", "x.service") == (
+        {"Unit": {"Description": "X"}, "Service": {"ExecStart": "/bin/x a=b"}}, None)
+    assert parse_ini("root = true\n[*]\nindent_size = 4\n", ".editorconfig") == ({"root": "true", "*": {"indent_size": "4"}}, None)
+    assert parse_ini("export A=1\nB='two words'\nC=x # note\n# comment\n", ".env") == ({"A": "1", "B": "two words", "C": "x"}, None)
+    assert parse_ini("[a]\nk=1\nbroken\n", "x.ini") == (None, "Line 3: broken")
+    assert parse_ini("[Service]\nEnvironment=A=1\nEnvironment=B=2\n", "x.service") == (
+        {"Service": {"Environment": ["A=1", "B=2"]}}, None)
+    assert parse_ini("[DEFAULT]\na=1\n[s]\nb=2\n", "x.ini") == ({"DEFAULT": {"a": "1"}, "s": {"b": "2"}}, None)
+    assert parse_ini("key: v\n; note\nother: w\n", "x.cfg") == ({"key": "v", "other": "w"}, None)
+    assert parse_ini("[s]\na=1\n", ".environment.ini") == ({"s": {"a": "1"}}, None)
+    assert parse_ini("TOKEN='abc' # prod\n", ".env") == ({"TOKEN": "abc"}, None)
+    payload = preview_payload("ini", "[s]\nk=v\n", "x.ini")
+    assert payload["tree"] == {"o": [["s", {"o": [["k", {"v": "v"}]]}]]}

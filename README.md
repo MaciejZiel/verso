@@ -10,7 +10,7 @@ A text editor for GNOME that shows what your files look like while you write the
 - **Edit, Preview, or both Side by Side** (Ctrl+E switches), with synchronized scrolling
 - **Outline** of the headings (F9) to move around long documents
 - **Writing helpers**: lists and quotes continue on Enter, Ctrl+B / Ctrl+I / Ctrl+K for bold, italic and links, a URL pasted over text becomes a link, a pasted image is saved next to the file
-- **JSON, YAML, TOML and XML** as a collapsible, searchable tree that keeps the order of the file
+- **JSON, YAML, TOML and XML** as a collapsible, searchable tree that keeps the order of the file; also JSON with comments (`tsconfig.json`, `.jsonc`), JSON Lines (`.jsonl`) and INI-style files (`.ini`, `.env`, `.editorconfig`, systemd units)
 - **CSV and TSV** as a table you can sort and filter
 - **HTML and SVG** previews; HTML runs without scripts
 - Preview themes (GitHub, Document, Reader), print and export to PDF

@@ -443,7 +443,9 @@ class Window(Adw.ApplicationWindow):
         self._syncing_mode = True
         self.mode_group.set_active_name(doc.mode)
         self._syncing_mode = False
-        self.lookup_action("format-json").set_enabled(doc.kind == "json")
+        # Formatting goes through strict JSON and would drop the comments of JSONC files.
+        jsonc = doc.file is not None and render.json_allows_comments(doc.file.get_basename())
+        self.lookup_action("format-json").set_enabled(doc.kind == "json" and not jsonc)
 
     def _on_mode_toggled(self, group, _pspec):
         if getattr(self, "_syncing_mode", False):

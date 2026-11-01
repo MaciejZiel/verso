@@ -388,8 +388,10 @@ class Document(Gtk.Box):
         self.kind = render.kind_of(name)
         manager = GtkSource.LanguageManager.get_default()
         language = manager.guess_language(name, None) if name else None
-        if language is None and self.kind == "markdown":
-            language = manager.get_language("markdown")
+        if language is None and self.kind:
+            # Names GtkSourceView does not recognise: .env, .jsonl, .jsonc, .editorconfig.
+            fallback = {"markdown": "markdown", "json": "json", "jsonl": "json", "ini": "ini"}.get(self.kind)
+            language = manager.get_language(fallback) if fallback else None
         self.buffer.set_language(language)
         self._update_spelling()
         self._update_outline()

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: verso\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2026-11-01 03:18+0100\n"
+"POT-Creation-Date: 2026-11-01 10:52+0100\n"
 "PO-Revision-Date: 2026-10-31 22:09+0100\n"
 "Last-Translator: Automatically generated\n"
 "Language-Team: none\n"
@@ -461,43 +461,43 @@ msgstr "_Anuluj"
 msgid "_Discard and Reopen"
 msgstr "_Odrzuć i otwórz ponownie"
 
-#: verso/document.py:419
+#: verso/document.py:421
 #, python-brace-format
 msgid "Could not save the file: {error}"
 msgstr "Nie udało się zapisać pliku: {error}"
 
-#: verso/document.py:691
+#: verso/document.py:721
 msgid "Save the document first to paste images."
 msgstr "Aby wkleić obraz, najpierw zapisz dokument."
 
-#: verso/document.py:718 verso/document.py:737 verso/document.py:740
+#: verso/document.py:748 verso/document.py:765 verso/document.py:780
 #, python-brace-format
 msgid "Could not paste the image: {error}"
 msgstr "Nie udało się wkleić obrazu: {error}"
 
-#: verso/document.py:794
+#: verso/document.py:834
 msgid "Formatting is available only for JSON files."
 msgstr "Formatowanie działa tylko dla plików JSON."
 
-#: verso/document.py:800
+#: verso/document.py:840
 #, python-brace-format
 msgid "Invalid JSON. {error}"
 msgstr "Niepoprawny JSON. {error}"
 
-#: verso/document.py:1026
+#: verso/document.py:1066
 msgid "Page %N of %Q"
 msgstr "Strona %N z %Q"
 
-#: verso/document.py:1279
+#: verso/document.py:1319
 #, python-brace-format
 msgid "{position} of {total}"
 msgstr "{position} z {total}"
 
-#: verso/document.py:1279
+#: verso/document.py:1319
 msgid "No matches"
 msgstr "Brak wyników"
 
-#: verso/document.py:1292
+#: verso/document.py:1332
 #, python-brace-format
 msgid "Replaced {count} match"
 msgid_plural "Replaced {count} matches"
@@ -505,86 +505,96 @@ msgstr[0] "Zamieniono {count} wystąpienie"
 msgstr[1] "Zamieniono {count} wystąpienia"
 msgstr[2] "Zamieniono {count} wystąpień"
 
-#: verso/document.py:1328
+#: verso/document.py:1368
 #, python-brace-format
 msgid "Could not keep a backup of unsaved changes: {error}"
 msgstr "Nie udało się zachować kopii niezapisanych zmian: {error}"
 
-#: verso/render.py:57 verso/render.py:164
+#: verso/render.py:73 verso/render.py:313
 #, python-brace-format
 msgid "Line {line}, column {column}: {message}"
 msgstr "Linia {line}, kolumna {column}: {message}"
 
-#: verso/render.py:80
-msgid "Contents"
-msgstr "Spis treści"
-
-#: verso/render.py:81
-msgid "Search keys and values…"
-msgstr "Szukaj w kluczach i wartościach…"
-
-#: verso/render.py:82
-msgid "Expand All"
-msgstr "Rozwiń wszystko"
-
-#: verso/render.py:83
-msgid "Collapse All"
-msgstr "Zwiń wszystko"
-
-#: verso/render.py:84
-msgid "Raw"
-msgstr "Surowy"
-
-#. Translators: count of search results in the JSON preview, e.g. "Matches: 3".
-#: verso/render.py:86
+#: verso/render.py:149 verso/render.py:386
 #, python-brace-format
-msgid "Matches: {count}"
-msgstr "Wyniki: {count}"
-
-#: verso/render.py:87
-msgid "No preview for this file type."
-msgstr "Brak podglądu dla tego typu pliku."
-
-#: verso/render.py:88
-msgid "Filter rows…"
-msgstr "Filtruj wiersze…"
-
-#. Translators: e.g. "Rows: 120"
-#: verso/render.py:90
-#, python-brace-format
-msgid "Rows: {count}"
-msgstr "Wiersze: {count}"
+msgid "Invalid {format}. {error}"
+msgstr "Niepoprawny {format}. {error}"
 
 #. Translators: the table preview shows only the start of very long files.
-#: verso/render.py:92
+#: verso/render.py:152 verso/render.py:241
 #, python-brace-format
 msgid "Showing the first {shown} of {total} rows"
 msgstr "Wyświetlono pierwsze {shown} z {total} wierszy"
 
-#: verso/render.py:93
+#: verso/render.py:185
+#, python-brace-format
+msgid "Line {line}: {text}"
+msgstr "Linia {line}: {text}"
+
+#: verso/render.py:229
+msgid "Contents"
+msgstr "Spis treści"
+
+#: verso/render.py:230
+msgid "Search keys and values…"
+msgstr "Szukaj w kluczach i wartościach…"
+
+#: verso/render.py:231
+msgid "Expand All"
+msgstr "Rozwiń wszystko"
+
+#: verso/render.py:232
+msgid "Collapse All"
+msgstr "Zwiń wszystko"
+
+#: verso/render.py:233
+msgid "Raw"
+msgstr "Surowy"
+
+#. Translators: count of search results in the JSON preview, e.g. "Matches: 3".
+#: verso/render.py:235
+#, python-brace-format
+msgid "Matches: {count}"
+msgstr "Wyniki: {count}"
+
+#: verso/render.py:236
+msgid "No preview for this file type."
+msgstr "Brak podglądu dla tego typu pliku."
+
+#: verso/render.py:237
+msgid "Filter rows…"
+msgstr "Filtruj wiersze…"
+
+#. Translators: e.g. "Rows: 120"
+#: verso/render.py:239
+#, python-brace-format
+msgid "Rows: {count}"
+msgstr "Wiersze: {count}"
+
+#: verso/render.py:242
 msgid "The file has no rows."
 msgstr "Plik nie zawiera wierszy."
 
-#: verso/render.py:113
+#: verso/render.py:262
 msgid "The document is too large or has too many repeated aliases to preview."
 msgstr ""
 "Dokument jest za duży albo ma zbyt wiele powtórzonych aliasów, by go "
 "wyświetlić."
 
-#: verso/render.py:138
+#: verso/render.py:287
 #, python-brace-format
 msgid "Line {line}, column {column}: "
 msgstr "Linia {line}, kolumna {column}: "
 
-#: verso/render.py:196
+#: verso/render.py:345
 #, python-brace-format
 msgid "Could not read the table: {error}"
 msgstr "Nie udało się odczytać tabeli: {error}"
 
-#: verso/render.py:223
-#, python-brace-format
-msgid "Invalid {format}. {error}"
-msgstr "Niepoprawny {format}. {error}"
+#. Valid JSONC: say why it is still an error here.
+#: verso/render.py:365
+msgid "Comments and trailing commas are allowed only in .jsonc files."
+msgstr "Komentarze i przecinki na końcu są dozwolone tylko w plikach .jsonc."
 
 #: verso/window.py:35
 msgid "New Tab (Ctrl+T)"
