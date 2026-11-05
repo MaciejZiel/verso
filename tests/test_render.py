@@ -122,6 +122,7 @@ def test_markdown_lines_math_mermaid_front_matter():
 
 
 def test_markdown_autolink_and_strikethrough():
+    pytest.importorskip("linkify_it")
     html, _, features = render_markdown("~~stare~~ https://example.org")
     assert "<s>stare</s>" in html and '<a href="https://example.org">' in html
     assert features == {"math": False, "mermaid": False}
@@ -281,3 +282,17 @@ def test_ini_and_env():
     assert parse_ini("TOKEN='abc' # prod\n", ".env") == ({"TOKEN": "abc"}, None)
     payload = preview_payload("ini", "[s]\nk=v\n", "x.ini")
     assert payload["tree"] == {"o": [["s", {"o": [["k", {"v": "v"}]]}]]}
+
+
+def test_markdown_renders_without_linkify(monkeypatch):
+    # Fedora installs markdown-it without linkify-it-py: bare URLs stay text,
+    # everything else renders (it used to raise on every document)
+    from verso import md
+
+    monkeypatch.setattr(md, "LINKIFY", False)
+    monkeypatch.setattr(md, "_MD", None)
+    html, toc, _ = render_markdown("# T\n\n~~stare~~ https://example.org [a](https://b.org)\n")
+    assert "<s>stare</s>" in html
+    assert "https://example.org" in html and '<a href="https://example.org">' not in html
+    assert '<a href="https://b.org">a</a>' in html
+    assert toc and toc[0][2] == "T"

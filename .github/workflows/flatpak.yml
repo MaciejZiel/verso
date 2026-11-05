@@ -18,3 +18,22 @@ jobs:
           bundle: verso.flatpak
           manifest-path: io.github.maciejziel.Verso.yml
           cache-key: flatpak-builder-${{ github.sha }}
+
+  tests:
+    # The unit tests import the verso package, which pins the GTK 4 stack's
+    # typelib versions; Fedora ships all of them (GTK 4, libadwaita,
+    # GtkSourceView 5, WebKitGTK 6, libspelling) as packages.
+    runs-on: ubuntu-latest
+    container:
+      image: fedora:43
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install the GTK stack and the Python dependencies
+        run: >-
+          dnf install -y --setopt=install_weak_deps=False
+          python3-gobject python3-cairo gobject-introspection
+          gtk4 libadwaita gtksourceview5 webkitgtk6.0 libspelling
+          python3-pytest python3-markdown-it-py python3-mdit-py-plugins
+          python3-pygments python3-pyyaml
+      - name: Unit tests
+        run: python3 -m pytest tests -q

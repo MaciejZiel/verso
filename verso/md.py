@@ -22,6 +22,12 @@ try:
 except ImportError:  # optional: without it footnotes and definition lists stay plain text
     deflist_plugin = footnote_plugin = None
 
+try:
+    import linkify_it  # noqa: F401 — markdown-it's linkify rule imports it on the first render
+    LINKIFY = True
+except ImportError:  # optional (not installed with markdown-it on Fedora): bare URLs stay text
+    LINKIFY = False
+
 _FRONT_MATTER = re.compile(r"\A---[ \t]*\n(.*?)\n(?:---|\.\.\.)[ \t]*(?:\n|\Z)", re.S)
 _TASK = re.compile(r"^\[([ xX])\]\s")
 _FOOTNOTE_ID = re.compile(r"fn(ref)?\d+(:\d+)?")  # ids the footnote plugin gives its links and notes
@@ -168,8 +174,8 @@ def _decorate(state):
 
 
 def _build():
-    md = MarkdownIt("commonmark", {"html": True, "linkify": True, "typographer": False})
-    md.enable(["table", "strikethrough", "linkify"])
+    md = MarkdownIt("commonmark", {"html": True, "linkify": LINKIFY, "typographer": False})
+    md.enable(["table", "strikethrough", *(["linkify"] if LINKIFY else [])])
     if footnote_plugin is not None:
         md.use(footnote_plugin).use(deflist_plugin)
     md.inline.ruler.before("escape", "math_inline", _math_inline)

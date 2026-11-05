@@ -48,6 +48,7 @@ Verso is heading to Flathub; until then it runs from the source tree. Ubuntu 26.
 sudo apt install gir1.2-webkit-6.0 gir1.2-gtksource-5 gir1.2-spelling-1 \
                  python3-markdown-it python3-pygments python3-yaml meson gettext
 sudo apt install python3-mdit-py-plugins   # optional: footnotes and definition lists
+sudo apt install python3-linkify-it        # optional: bare URLs as links (Ubuntu installs it with markdown-it; Fedora does not)
 ```
 
 ```
